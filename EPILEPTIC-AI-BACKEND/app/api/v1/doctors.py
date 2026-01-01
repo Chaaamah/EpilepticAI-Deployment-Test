@@ -90,23 +90,30 @@ async def create_patient(
 
     return patient
 
-@router.get("/patients", response_model=List[PatientInDB], summary="Get patients assigned to current doctor")
+@router.get("/patients", response_model=List[PatientInDB], summary="Get patients (admin sees all, doctor sees only assigned)")
 async def get_patients_list(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
-    current_doctor = Depends(get_current_doctor_user)
+    current_user = Depends(get_current_admin_or_doctor)
 ):
     """
-    Get list of patients assigned to the current doctor.
-    Each doctor only sees their own patients (filtered by treating_neurologist).
+    Get list of patients.
+    - Admin users: see all patients
+    - Doctor users: see only patients assigned to them (filtered by treating_neurologist)
     """
-    # Get doctor's email
+    # Check if user is admin
+    if current_user.role == "admin":
+        # Admin sees all patients
+        patients = db.query(Patient).offset(skip).limit(limit).all()
+        return patients
+
+    # For doctors: filter by treating_neurologist
     doctor_email = None
-    if isinstance(current_doctor, Doctor):
-        doctor_email = current_doctor.email
-    elif hasattr(current_doctor, 'email'):
-        doctor_email = current_doctor.email
+    if isinstance(current_user, Doctor):
+        doctor_email = current_user.email
+    elif hasattr(current_user, 'email'):
+        doctor_email = current_user.email
 
     if not doctor_email:
         raise HTTPException(
@@ -121,19 +128,33 @@ async def get_patients_list(
 
     return patients
 
-@router.get("/patients/{patient_id}", response_model=PatientInDB, summary="Get patient by ID (Doctor only)")
+@router.get("/patients/{patient_id}", response_model=PatientInDB, summary="Get patient by ID (admin sees all, doctor sees only assigned)")
 async def get_patient_by_id(
     patient_id: int,
     db: Session = Depends(get_db),
-    current_doctor = Depends(get_current_doctor_user)
+    current_user = Depends(get_current_admin_or_doctor)
 ):
-    """Get patient details by ID. Only accessible by the patient's assigned doctor."""
-    # Get doctor's email
+    """
+    Get patient details by ID.
+    - Admin users: can access any patient
+    - Doctor users: can only access patients assigned to them
+    """
+    # If admin, allow access to any patient
+    if current_user.role == "admin":
+        patient = db.query(Patient).filter(Patient.id == patient_id).first()
+        if not patient:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Patient not found"
+            )
+        return patient
+
+    # For doctors: verify patient belongs to them
     doctor_email = None
-    if isinstance(current_doctor, Doctor):
-        doctor_email = current_doctor.email
-    elif hasattr(current_doctor, 'email'):
-        doctor_email = current_doctor.email
+    if isinstance(current_user, Doctor):
+        doctor_email = current_user.email
+    elif hasattr(current_user, 'email'):
+        doctor_email = current_user.email
 
     # Find patient and verify it belongs to this doctor
     patient = db.query(Patient).filter(
@@ -149,14 +170,18 @@ async def get_patient_by_id(
 
     return patient
 
-@router.put("/patients/{patient_id}", response_model=PatientInDB, summary="Update patient (Doctor only)")
+@router.put("/patients/{patient_id}", response_model=PatientInDB, summary="Update patient (admin or assigned doctor)")
 async def update_patient_by_doctor(
     patient_id: int,
     patient_data: PatientUpdate,
     db: Session = Depends(get_db),
-    current_doctor = Depends(get_current_doctor_user)
+    current_user = Depends(get_current_admin_or_doctor)
 ):
-    """Update patient information. Only accessible by doctors."""
+    """
+    Update patient information.
+    - Admin users: can update any patient
+    - Doctor users: can only update patients assigned to them
+    """
     patient = db.query(Patient).filter(Patient.id == patient_id).first()
 
     if not patient:
@@ -164,6 +189,20 @@ async def update_patient_by_doctor(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Patient not found"
         )
+
+    # For doctors: verify patient belongs to them
+    if current_user.role != "admin":
+        doctor_email = None
+        if isinstance(current_user, Doctor):
+            doctor_email = current_user.email
+        elif hasattr(current_user, 'email'):
+            doctor_email = current_user.email
+
+        if patient.treating_neurologist != doctor_email:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You can only update patients assigned to you"
+            )
 
     # Update patient data
     update_data = patient_data.dict(exclude_unset=True)
@@ -186,14 +225,16 @@ async def update_patient_by_doctor(
 
     return patient
 
-@router.delete("/patients/{patient_id}", summary="Delete patient (Doctor only)")
+@router.delete("/patients/{patient_id}", summary="Delete patient (admin or assigned doctor)")
 async def delete_patient_by_doctor(
     patient_id: int,
     db: Session = Depends(get_db),
-    current_doctor = Depends(get_current_doctor_user)
+    current_user = Depends(get_current_admin_or_doctor)
 ):
     """
-    Delete a patient. Only accessible by doctors.
+    Delete a patient.
+    - Admin users: can delete any patient
+    - Doctor users: can only delete patients assigned to them
     This will remove the patient from both Patient and User tables.
     """
     patient = db.query(Patient).filter(Patient.id == patient_id).first()
@@ -203,6 +244,20 @@ async def delete_patient_by_doctor(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Patient not found"
         )
+
+    # For doctors: verify patient belongs to them
+    if current_user.role != "admin":
+        doctor_email = None
+        if isinstance(current_user, Doctor):
+            doctor_email = current_user.email
+        elif hasattr(current_user, 'email'):
+            doctor_email = current_user.email
+
+        if patient.treating_neurologist != doctor_email:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You can only delete patients assigned to you"
+            )
 
     # Delete from User table if exists
     user = db.query(User).filter(User.email == patient.email).first()
