@@ -5,6 +5,8 @@ from datetime import datetime
 class BiometricBase(BaseModel):
     heart_rate: Optional[float] = Field(None, ge=30, le=200)
     heart_rate_variability: Optional[float] = Field(None, ge=0)
+    spo2: Optional[float] = Field(None, ge=0, le=100)
+    temperature: Optional[float] = None
     accelerometer_x: Optional[float] = None
     accelerometer_y: Optional[float] = None
     accelerometer_z: Optional[float] = None

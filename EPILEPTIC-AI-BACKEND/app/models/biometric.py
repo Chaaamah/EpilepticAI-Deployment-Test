@@ -13,6 +13,8 @@ class Biometric(Base):
     # Heart Rate Data
     heart_rate = Column(Float, nullable=True)
     heart_rate_variability = Column(Float, nullable=True)
+    spo2 = Column(Float, nullable=True)
+    temperature = Column(Float, nullable=True)
     
     # Accelerometer Data
     accelerometer_x = Column(Float, nullable=True)
