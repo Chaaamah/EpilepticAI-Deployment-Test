@@ -1,212 +1,204 @@
-# Guide de Déploiement - EpilepticAI
+# Guide de Déploiement SIMPLIFIÉ - EpilepticAI
 
 ## Informations du Serveur
 
 - **Team**: AiVora
 - **Domain**: aivora.fojas.ai
 - **Port interne**: 3101
-- **URL**: http://aivora.fojas.ai (HTTPS peut être ajouté plus tard)
+- **URL**: http://aivora.fojas.ai
 
 ---
 
-## Prérequis
+## 🚀 Déploiement ULTRA-SIMPLE (3 commandes!)
 
-Avant de déployer, assurez-vous d'avoir:
+### Prérequis
 
-1. **Accès SSH au serveur Linux**
-2. **Docker installé** (version 20.10 ou supérieure)
-3. **Docker Compose installé** (version 2.0 ou supérieure)
-4. **Git installé** (pour cloner le projet)
+Assurez-vous d'avoir Docker et Docker Compose installés sur votre serveur Linux.
 
----
-
-## Installation de Docker et Docker Compose
-
-Si Docker n'est pas encore installé sur votre serveur:
+### Installation de Docker (si nécessaire)
 
 ```bash
-# Mise à jour du système
-sudo apt update && sudo apt upgrade -y
-
-# Installation de Docker
+# Installation rapide de Docker
 curl -fsSL https://get.docker.com -o get-docker.sh
 sudo sh get-docker.sh
-
-# Ajouter votre utilisateur au groupe docker (pour éviter sudo)
 sudo usermod -aG docker $USER
 
 # Installation de Docker Compose
 sudo apt install docker-compose-plugin -y
 
-# Vérification des installations
-docker --version
-docker compose version
+# Déconnectez-vous et reconnectez-vous pour appliquer les changements
 ```
-
-**Note**: Déconnectez-vous et reconnectez-vous pour que les changements de groupe prennent effet.
 
 ---
 
-## Étape 1: Cloner le Projet sur le Serveur
+## 📦 Déploiement en 3 COMMANDES
+
+Sur votre serveur Linux:
 
 ```bash
-# Se connecter au serveur
-ssh votre_utilisateur@aivora.fojas.ai
-
-# Cloner le projet (remplacez par votre URL Git)
+# 1. Cloner le projet
 git clone <URL_DE_VOTRE_REPO> EpilepticAI
 cd EpilepticAI
+
+# 2. Rendre le script exécutable
+chmod +x deploy-simple.sh
+
+# 3. Lancer le déploiement
+./deploy-simple.sh
 ```
+
+**C'EST TOUT!** 🎉
+
+Votre application sera accessible à: **http://aivora.fojas.ai**
 
 ---
 
-## Étape 2: Configuration des Variables d'Environnement
+## 📝 Ce qui se passe automatiquement
 
-### 2.1 Copier le fichier template
-
-```bash
-cp .env.production .env.production.local
-```
-
-### 2.2 Modifier le fichier avec vos vraies valeurs
-
-```bash
-nano .env.production.local
-```
-
-### 2.3 Valeurs IMPORTANTES à modifier:
-
-```bash
-# 1. Mot de passe PostgreSQL (choisissez un mot de passe fort)
-POSTGRES_PASSWORD=VotreMdpSecurise123!
-
-# 2. SECRET_KEY - Générez une clé secrète forte
-# Utilisez cette commande pour en générer une:
-openssl rand -hex 32
-# Ensuite, collez le résultat dans:
-SECRET_KEY=la_cle_generee_par_openssl
-
-# 3. Mettez à jour DATABASE_URL avec le nouveau mot de passe
-DATABASE_URL=postgresql+psycopg2://postgres:VotreMdpSecurise123!@postgres:5432/epileptic_ai
-```
-
-### 2.4 Renommer le fichier pour le déploiement
-
-```bash
-mv .env.production.local .env.production
-```
-
-### 2.5 Sécuriser les permissions du fichier
-
-```bash
-chmod 600 .env.production
-```
+Le script `deploy-simple.sh` fait tout automatiquement:
+- ✅ Arrête les anciens conteneurs (si ils existent)
+- ✅ Construit les images Docker
+- ✅ Démarre tous les services:
+  - PostgreSQL (base de données)
+  - Redis (cache)
+  - Backend API (FastAPI)
+  - Frontend (React + Nginx sur port 3101)
+  - Celery Worker (tâches d'arrière-plan)
+- ✅ Affiche le statut
 
 ---
 
-## Étape 3: Déploiement
+## 🔧 Configuration
 
-### Méthode 1: Utiliser le script automatique (Recommandé)
+### Fichier .env
 
-```bash
-# Rendre le script exécutable
-chmod +x deploy.sh
+Le fichier `.env` est déjà configuré et inclus dans le repo! Vous n'avez rien à modifier.
 
-# Lancer le déploiement
-./deploy.sh
-```
+**Configuration par défaut:**
+- Base de données: PostgreSQL
+- Mot de passe BD: `epileptic_secure_2026`
+- Secret Key: Généré automatiquement
+- Token expiration: 30 minutes
 
-Le script va:
-- Vérifier que Docker est installé
-- Vérifier que vous avez modifié les mots de passe
-- Arrêter les conteneurs existants
-- Construire les images Docker
-- Démarrer tous les services
-- Afficher les logs
+### ⚠️ IMPORTANT pour la Production
 
-### Méthode 2: Commandes manuelles
+Si vous voulez changer les mots de passe pour plus de sécurité:
 
 ```bash
-# Arrêter les conteneurs existants (si ils existent)
-docker compose -f docker-compose.deploy.yml --env-file .env.production down
-
-# Construire et démarrer les conteneurs
-docker compose -f docker-compose.deploy.yml --env-file .env.production up -d --build
-
-# Vérifier que tout fonctionne
-docker compose -f docker-compose.deploy.yml --env-file .env.production ps
+nano .env
 ```
+
+Modifiez:
+- `POSTGRES_PASSWORD`: Changez le mot de passe PostgreSQL
+- `SECRET_KEY`: Générez une nouvelle clé avec: `openssl rand -hex 32`
+- `DATABASE_URL`: Mettez à jour avec le nouveau mot de passe PostgreSQL
 
 ---
 
-## Étape 4: Vérification du Déploiement
+## 🛠️ Commandes Utiles
 
-### 4.1 Vérifier que les conteneurs tournent
-
-```bash
-docker ps
-```
-
-Vous devriez voir:
-- `epileptic_postgres`
-- `epileptic_redis`
-- `epileptic_backend`
-- `epileptic_frontend`
-- `epileptic_worker`
-
-### 4.2 Vérifier les logs
+### Gestion des conteneurs
 
 ```bash
-# Tous les services
-docker compose -f docker-compose.deploy.yml --env-file .env.production logs -f
+# Voir le statut
+docker compose -f docker-compose.deploy.yml ps
 
-# Backend uniquement
+# Voir les logs (tous les services)
+docker compose -f docker-compose.deploy.yml logs -f
+
+# Voir les logs d'un service spécifique
 docker logs epileptic_backend -f
-
-# Frontend uniquement
 docker logs epileptic_frontend -f
+
+# Redémarrer tous les services
+docker compose -f docker-compose.deploy.yml restart
+
+# Redémarrer un service spécifique
+docker compose -f docker-compose.deploy.yml restart backend
+
+# Arrêter tout
+docker compose -f docker-compose.deploy.yml down
+
+# Redémarrer le déploiement
+./deploy-simple.sh
 ```
 
-### 4.3 Tester l'application
+### Mise à jour de l'application
 
-Ouvrez votre navigateur et accédez à:
+```bash
+# Récupérer les derniers changements
+git pull origin main
+
+# Redéployer
+./deploy-simple.sh
+```
+
+---
+
+## 🔍 Vérification
+
+### Vérifier que tout fonctionne
+
+```bash
+# Vérifier les conteneurs actifs
+docker ps
+
+# Tester le frontend
+curl http://localhost:3101
+
+# Tester le backend
+curl http://localhost:3101/api/health
+
+# Voir les logs en temps réel
+docker compose -f docker-compose.deploy.yml logs -f
+```
+
+### Endpoints disponibles
+
 - **Frontend**: http://aivora.fojas.ai
-- **API Backend**: http://aivora.fojas.ai/api/docs (Swagger UI)
-- **Health Check Backend**: http://aivora.fojas.ai/api/health
+- **API Docs (Swagger)**: http://aivora.fojas.ai/api/docs
+- **Health Check**: http://aivora.fojas.ai/api/health
 
 ---
 
-## Étape 5: Initialisation de la Base de Données
+## 🗄️ Base de Données
 
-Si c'est la première fois que vous déployez, vous devrez peut-être initialiser la base de données:
+### Accéder à PostgreSQL
 
 ```bash
-# Se connecter au conteneur backend
-docker exec -it epileptic_backend bash
+# Se connecter à la base de données
+docker exec -it epileptic_postgres psql -U postgres -d epileptic_ai
 
-# Lancer les migrations (si vous utilisez Alembic)
-alembic upgrade head
+# Lister les tables
+\dt
 
-# Ou créer les tables directement (selon votre configuration)
-python -c "from app.database import Base, engine; Base.metadata.create_all(bind=engine)"
+# Quitter
+\q
+```
 
-# Sortir du conteneur
-exit
+### Backup de la base de données
+
+```bash
+# Créer un backup
+docker exec epileptic_postgres pg_dump -U postgres epileptic_ai > backup_$(date +%Y%m%d_%H%M%S).sql
+
+# Restaurer un backup
+docker exec -i epileptic_postgres psql -U postgres epileptic_ai < backup_20260101_120000.sql
 ```
 
 ---
 
-## Configuration HTTPS (Optionnel mais Recommandé)
+## 🔒 Configuration HTTPS (Optionnel)
 
-Pour sécuriser votre application avec HTTPS, vous pouvez utiliser **Let's Encrypt** avec **Certbot**:
+Pour sécuriser votre application avec HTTPS:
 
-### Option 1: Utiliser un reverse proxy Nginx sur l'hôte
+### Méthode 1: Nginx + Let's Encrypt (Recommandé)
 
 ```bash
-# Installer Nginx
+# 1. Installer Nginx et Certbot
 sudo apt install nginx certbot python3-certbot-nginx -y
 
-# Créer la configuration Nginx
+# 2. Créer la configuration Nginx
 sudo nano /etc/nginx/sites-available/aivora.fojas.ai
 ```
 
@@ -228,260 +220,179 @@ server {
 ```
 
 ```bash
-# Activer le site
+# 3. Activer le site
 sudo ln -s /etc/nginx/sites-available/aivora.fojas.ai /etc/nginx/sites-enabled/
-
-# Tester la configuration
 sudo nginx -t
-
-# Recharger Nginx
 sudo systemctl reload nginx
 
-# Obtenir un certificat SSL
+# 4. Obtenir un certificat SSL (HTTPS)
 sudo certbot --nginx -d aivora.fojas.ai
 ```
 
-### Option 2: Utiliser Traefik (plus avancé)
-
-Traefik peut gérer automatiquement les certificats SSL. Si vous êtes intéressé, consultez la documentation officielle de Traefik.
+Certbot configurera automatiquement HTTPS! 🔒
 
 ---
 
-## Commandes Utiles
-
-### Gestion des conteneurs
-
-```bash
-# Voir le statut des conteneurs
-docker compose -f docker-compose.deploy.yml --env-file .env.production ps
-
-# Arrêter tous les services
-docker compose -f docker-compose.deploy.yml --env-file .env.production down
-
-# Redémarrer tous les services
-docker compose -f docker-compose.deploy.yml --env-file .env.production restart
-
-# Redémarrer un service spécifique
-docker compose -f docker-compose.deploy.yml --env-file .env.production restart backend
-
-# Reconstruire et redémarrer
-docker compose -f docker-compose.deploy.yml --env-file .env.production up -d --build
-```
-
-### Logs et debugging
-
-```bash
-# Voir tous les logs
-docker compose -f docker-compose.deploy.yml --env-file .env.production logs -f
-
-# Logs d'un service spécifique
-docker logs epileptic_backend -f
-docker logs epileptic_frontend -f
-docker logs epileptic_worker -f
-docker logs epileptic_postgres -f
-
-# Logs des 100 dernières lignes
-docker logs epileptic_backend --tail 100
-```
-
-### Accès aux conteneurs
-
-```bash
-# Se connecter au backend
-docker exec -it epileptic_backend bash
-
-# Se connecter à PostgreSQL
-docker exec -it epileptic_postgres psql -U postgres -d epileptic_ai
-
-# Se connecter à Redis
-docker exec -it epileptic_redis redis-cli
-```
-
-### Nettoyage
-
-```bash
-# Supprimer tous les conteneurs et volumes (ATTENTION: perte de données!)
-docker compose -f docker-compose.deploy.yml --env-file .env.production down -v
-
-# Nettoyer les images Docker inutilisées
-docker system prune -a
-```
-
----
-
-## Mise à Jour de l'Application
-
-Quand vous voulez déployer une nouvelle version:
-
-```bash
-# 1. Récupérer les derniers changements
-git pull origin main
-
-# 2. Reconstruire et redémarrer
-docker compose -f docker-compose.deploy.yml --env-file .env.production up -d --build
-
-# 3. Vérifier les logs
-docker compose -f docker-compose.deploy.yml --env-file .env.production logs -f
-```
-
----
-
-## Sauvegarde de la Base de Données
-
-### Backup manuel
-
-```bash
-# Créer un backup
-docker exec epileptic_postgres pg_dump -U postgres epileptic_ai > backup_$(date +%Y%m%d_%H%M%S).sql
-
-# Restaurer un backup
-docker exec -i epileptic_postgres psql -U postgres epileptic_ai < backup_20260101_120000.sql
-```
-
-### Backup automatique (avec cron)
-
-```bash
-# Éditer le crontab
-crontab -e
-
-# Ajouter cette ligne pour un backup quotidien à 2h du matin
-0 2 * * * docker exec epileptic_postgres pg_dump -U postgres epileptic_ai > /home/votre_utilisateur/backups/backup_$(date +\%Y\%m\%d).sql
-```
-
----
-
-## Monitoring et Performance
-
-### Surveiller l'utilisation des ressources
-
-```bash
-# Voir l'utilisation CPU/RAM de chaque conteneur
-docker stats
-
-# Voir l'espace disque utilisé
-docker system df
-```
-
-### Limites de ressources
-
-Les limites sont déjà configurées dans [docker-compose.deploy.yml](docker-compose.deploy.yml):
-- Backend: Max 1GB RAM
-- Frontend: Max 256MB RAM
-- Database: Max 1GB RAM
-- Worker: Max 512MB RAM
-
----
-
-## Dépannage (Troubleshooting)
+## 🐛 Dépannage
 
 ### Problème: Les conteneurs ne démarrent pas
 
 ```bash
-# Vérifier les logs d'erreur
-docker compose -f docker-compose.deploy.yml --env-file .env.production logs
+# Voir les erreurs
+docker compose -f docker-compose.deploy.yml logs
 
-# Vérifier que le port 3101 est libre
+# Tout supprimer et recommencer
+docker compose -f docker-compose.deploy.yml down -v
+./deploy-simple.sh
+```
+
+### Problème: Le port 3101 est déjà utilisé
+
+```bash
+# Voir ce qui utilise le port
 sudo netstat -tulpn | grep 3101
+
+# Tuer le processus (remplacez PID par le numéro du processus)
+sudo kill -9 PID
 ```
 
 ### Problème: Erreur de connexion à la base de données
 
 ```bash
-# Vérifier que PostgreSQL est bien démarré
-docker logs epileptic_postgres
+# Redémarrer PostgreSQL
+docker compose -f docker-compose.deploy.yml restart postgres
 
-# Tester la connexion
-docker exec epileptic_postgres pg_isready -U postgres
+# Vérifier les logs PostgreSQL
+docker logs epileptic_postgres
 ```
 
 ### Problème: L'application ne répond pas
 
 ```bash
-# Redémarrer tous les services
-docker compose -f docker-compose.deploy.yml --env-file .env.production restart
+# Redémarrer tout
+docker compose -f docker-compose.deploy.yml restart
 
-# Si ça ne fonctionne pas, reconstruire tout
-docker compose -f docker-compose.deploy.yml --env-file .env.production down
-docker compose -f docker-compose.deploy.yml --env-file .env.production up -d --build
+# Si ça ne marche pas, tout reconstruire
+docker compose -f docker-compose.deploy.yml down
+./deploy-simple.sh
 ```
 
-### Problème: Espace disque plein
+---
+
+## 📊 Monitoring
+
+### Voir l'utilisation des ressources
 
 ```bash
-# Nettoyer les ressources Docker inutilisées
-docker system prune -a --volumes
+# Utilisation CPU/RAM de chaque conteneur
+docker stats
 
-# ATTENTION: Cela supprimera aussi les volumes non utilisés!
+# Espace disque utilisé par Docker
+docker system df
+```
+
+### Nettoyer l'espace disque
+
+```bash
+# Supprimer les images et conteneurs inutilisés
+docker system prune -a
+
+# ATTENTION: Ne supprime PAS les volumes (vos données sont sauvegardées)
 ```
 
 ---
 
-## Architecture de Déploiement
+## 🏗️ Architecture
 
 ```
-┌─────────────────────────────────────────┐
-│  Internet (aivora.fojas.ai)             │
-└───────────────┬─────────────────────────┘
-                │
-                │ Port 80 (HTTP)
-                ▼
-┌─────────────────────────────────────────┐
-│  Reverse Proxy (Nginx - Optionnel)     │
-└───────────────┬─────────────────────────┘
-                │
-                │ Port 3101
-                ▼
-┌─────────────────────────────────────────┐
-│  Docker Host (Serveur Linux)            │
-│                                         │
-│  ┌─────────────────────────────────┐   │
-│  │  Frontend (Nginx)               │   │
-│  │  Port: 3101 → 80                │   │
-│  └────────┬────────────────────────┘   │
-│           │                             │
-│           │ Proxy /api/ →               │
-│           ▼                             │
-│  ┌─────────────────────────────────┐   │
-│  │  Backend (FastAPI)              │   │
-│  │  Port: 8000                     │   │
-│  └────┬──────────────┬─────────────┘   │
-│       │              │                  │
-│       ▼              ▼                  │
-│  ┌─────────┐   ┌─────────┐            │
-│  │ PostgreSQL   │ Redis   │            │
-│  │ Port: 5432   │ Port: 6379           │
-│  └─────────┘   └─────────┘            │
-│                                         │
-│  ┌─────────────────────────────────┐   │
-│  │  Celery Worker                  │   │
-│  └─────────────────────────────────┘   │
-│                                         │
-└─────────────────────────────────────────┘
+Internet (aivora.fojas.ai)
+         │
+         │ Port 80/443
+         ▼
+┌─────────────────────────┐
+│  Nginx (Optionnel)      │
+│  Reverse Proxy + HTTPS  │
+└───────────┬─────────────┘
+            │
+            │ Port 3101
+            ▼
+┌─────────────────────────────────┐
+│  Serveur Linux (Docker)         │
+│                                 │
+│  ┌─────────────────────────┐   │
+│  │  Frontend (Port 3101)   │   │
+│  │  Nginx + React          │   │
+│  └──────────┬──────────────┘   │
+│             │                   │
+│             │ /api/ → Backend   │
+│             ▼                   │
+│  ┌─────────────────────────┐   │
+│  │  Backend (Port 8000)    │   │
+│  │  FastAPI                │   │
+│  └───┬─────────────┬───────┘   │
+│      │             │            │
+│      ▼             ▼            │
+│  ┌──────────┐ ┌────────┐      │
+│  │PostgreSQL│ │ Redis  │      │
+│  └──────────┘ └────────┘      │
+│                                 │
+│  ┌─────────────────────────┐   │
+│  │  Celery Worker          │   │
+│  └─────────────────────────┘   │
+│                                 │
+└─────────────────────────────────┘
 ```
 
 ---
 
-## Sécurité - Checklist
+## 📋 Checklist de Déploiement
 
-- [x] Utiliser des mots de passe forts pour PostgreSQL
-- [x] Générer une SECRET_KEY unique et forte
-- [x] Désactiver DEBUG en production
-- [x] Configurer les limites de ressources Docker
-- [ ] Activer HTTPS avec Let's Encrypt
-- [ ] Configurer un pare-feu (UFW)
-- [ ] Mettre en place des sauvegardes régulières
-- [ ] Surveiller les logs régulièrement
-- [ ] Mettre à jour Docker et les images régulièrement
+- [x] Docker installé
+- [x] Docker Compose installé
+- [x] Projet cloné
+- [x] Script de déploiement exécuté
+- [ ] Application accessible via http://aivora.fojas.ai
+- [ ] HTTPS configuré (optionnel mais recommandé)
+- [ ] Sauvegardes automatiques configurées (optionnel)
 
 ---
 
-## Support
+## 🎯 Commandes de Déploiement - Résumé
 
-Pour toute question ou problème:
-1. Vérifiez d'abord les logs
-2. Consultez ce guide
-3. Contactez l'équipe AiVora
+**Installation complète (première fois):**
+```bash
+git clone <URL_DE_VOTRE_REPO> EpilepticAI
+cd EpilepticAI
+chmod +x deploy-simple.sh
+./deploy-simple.sh
+```
+
+**Mise à jour:**
+```bash
+cd EpilepticAI
+git pull origin main
+./deploy-simple.sh
+```
+
+**Redémarrage:**
+```bash
+cd EpilepticAI
+docker compose -f docker-compose.deploy.yml restart
+```
+
+**Arrêt:**
+```bash
+cd EpilepticAI
+docker compose -f docker-compose.deploy.yml down
+```
 
 ---
+
+## 🆘 Support
+
+Si vous rencontrez des problèmes:
+1. Vérifiez les logs: `docker compose -f docker-compose.deploy.yml logs -f`
+2. Vérifiez le statut: `docker compose -f docker-compose.deploy.yml ps`
+3. Redémarrez: `./deploy-simple.sh`
 
 **Bon déploiement!** 🚀

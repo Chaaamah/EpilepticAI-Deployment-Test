@@ -2,6 +2,7 @@ version: '3.8'
 
 # Production deployment for aivora.fojas.ai
 # This configuration exposes the frontend on port 3101
+# Usage: docker compose -f docker-compose.deploy.yml up -d
 
 services:
   # PostgreSQL Database
