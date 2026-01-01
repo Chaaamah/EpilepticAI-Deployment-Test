@@ -1,13 +1,17 @@
 import axios from 'axios';
 
 // API configuration
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+// In production (Docker), VITE_API_BASE_URL is empty string for relative URLs
+// Nginx will proxy /api/ requests to the backend container
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL !== undefined
+  ? import.meta.env.VITE_API_BASE_URL
+  : 'http://localhost:8000';
 const API_VERSION = import.meta.env.VITE_API_VERSION || 'v1';
 const API_TIMEOUT = Number(import.meta.env.VITE_API_TIMEOUT) || 30000;
 
 // Create axios instance
 export const api = axios.create({
-  baseURL: `${API_BASE_URL}/api/${API_VERSION}`,
+  baseURL: API_BASE_URL ? `${API_BASE_URL}/api/${API_VERSION}` : `/api/${API_VERSION}`,
   timeout: API_TIMEOUT,
   headers: {
     'Content-Type': 'application/json',
