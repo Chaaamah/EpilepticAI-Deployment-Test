@@ -208,6 +208,54 @@ async def get_current_doctor_profile(
         )
     return doctor
 
+@router.put("/me", response_model=DoctorInDB, summary="Update current doctor profile")
+async def update_current_doctor_profile(
+    doctor_data: DoctorUpdate,
+    db: Session = Depends(get_db),
+    current_doctor = Depends(get_current_doctor_user)
+):
+    """
+    Update current doctor's own profile.
+    Doctors can update their own information without admin privileges.
+    """
+    # Get the current doctor's record
+    if isinstance(current_doctor, Doctor):
+        doctor = current_doctor
+    else:
+        doctor = db.query(Doctor).filter(Doctor.email == current_doctor.email).first()
+        if not doctor:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Doctor profile not found"
+            )
+
+    # Get update data excluding unset fields
+    update_data = doctor_data.model_dump(exclude_unset=True)
+
+    # Don't allow doctors to change their own email through this endpoint
+    if "email" in update_data and update_data["email"] != doctor.email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot change email through this endpoint. Contact an administrator."
+        )
+
+    # Apply updates to doctor
+    for field, value in update_data.items():
+        setattr(doctor, field, value)
+
+    # Also update User table if exists
+    user = db.query(User).filter(User.email == doctor.email).first()
+    if user:
+        if doctor_data.full_name:
+            user.full_name = doctor_data.full_name
+        if doctor_data.phone:
+            user.phone = doctor_data.phone
+
+    db.commit()
+    db.refresh(doctor)
+
+    return doctor
+
 # ============================================
 # ADMIN ENDPOINTS FOR DOCTOR MANAGEMENT
 # Must be BEFORE the generic /{doctor_id} route
