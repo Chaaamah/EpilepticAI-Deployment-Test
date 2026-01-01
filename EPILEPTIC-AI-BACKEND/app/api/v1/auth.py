@@ -246,6 +246,72 @@ async def login_user(
     }
 
 
+@router.post("/refresh-token", response_model=Token)
+async def refresh_access_token(
+    refresh_token: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Refresh access token using refresh token.
+    Mobile apps can use this to get a new access token without re-login.
+    """
+    from app.core.security import verify_token
+
+    # Verify refresh token
+    email = verify_token(refresh_token)
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired refresh token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # Get user from database
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Inactive account"
+        )
+
+    # Create new access token
+    access_token = create_access_token(
+        subject=user.email,
+        user_type=user.role.value
+    )
+
+    # Optionally create new refresh token (for rotation)
+    new_refresh_token = create_access_token(
+        subject=user.email,
+        user_type=user.role.value,
+        expires_delta=timedelta(days=30)
+    )
+
+    return {
+        "access_token": access_token,
+        "refresh_token": new_refresh_token,
+        "token_type": "bearer",
+        "user_type": user.role.value
+    }
+
+
+@router.post("/logout")
+async def logout(current_user = Depends(get_current_user)):
+    """
+    Logout endpoint for mobile apps.
+    Since we use stateless JWT, this is mainly for client-side token cleanup.
+    Future: Could implement token blacklisting here.
+    """
+    return {"message": "Logged out successfully"}
+
+
 @router.get("/me", response_model=DoctorInDB)
 async def read_users_me(
     current_user=Depends(get_current_user),

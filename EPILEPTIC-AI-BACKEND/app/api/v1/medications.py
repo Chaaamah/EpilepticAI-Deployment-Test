@@ -99,6 +99,30 @@ async def update_medication(
     
     return medication
 
+@router.delete("/{medication_id}")
+async def delete_medication(
+    medication_id: int,
+    current_patient=Depends(get_current_patient),
+    db: Session = Depends(get_db)
+):
+    """Delete a medication (for mobile app)"""
+    medication = db.query(Medication).filter(
+        Medication.id == medication_id,
+        Medication.patient_id == current_patient.id
+    ).first()
+
+    if not medication:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Medication not found"
+        )
+
+    db.delete(medication)
+    db.commit()
+
+    return {"message": f"Medication {medication.name} deleted successfully"}
+
+
 @router.post("/{medication_id}/take")
 async def take_medication(
     medication_id: int,
@@ -110,14 +134,52 @@ async def take_medication(
         Medication.id == medication_id,
         Medication.patient_id == current_patient.id
     ).first()
-    
+
     if not medication:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Medication not found"
         )
-    
+
     medication.last_taken = datetime.utcnow()
     db.commit()
-    
+
     return {"message": "Medication intake recorded"}
+
+
+@router.get("/logs")
+async def get_medication_logs(
+    days: int = 30,
+    current_patient=Depends(get_current_patient),
+    db: Session = Depends(get_db)
+):
+    """
+    Get medication intake logs for the last N days.
+    Returns history of medication taken/missed.
+    """
+    from datetime import timedelta
+
+    # Get all patient medications
+    medications = db.query(Medication).filter(
+        Medication.patient_id == current_patient.id
+    ).all()
+
+    logs = []
+    for med in medications:
+        if med.last_taken:
+            logs.append({
+                "medication_id": med.id,
+                "medication_name": med.name,
+                "dosage": med.dosage,
+                "taken_at": med.last_taken,
+                "status": "taken"
+            })
+
+    # Sort by taken_at descending
+    logs.sort(key=lambda x: x["taken_at"], reverse=True)
+
+    return {
+        "logs": logs,
+        "period_days": days,
+        "total_entries": len(logs)
+    }
