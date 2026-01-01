@@ -52,10 +52,18 @@ async def create_patient(
     db.add(user)
 
     # Create patient in Patient table
-    # Auto-assign to current doctor's email
+    # ALWAYS assign to current doctor's email (ignore treating_neurologist from frontend)
     doctor_email = None
-    if hasattr(current_doctor, 'email'):
+    if isinstance(current_doctor, Doctor):
         doctor_email = current_doctor.email
+    elif hasattr(current_doctor, 'email'):
+        doctor_email = current_doctor.email
+
+    if not doctor_email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Could not determine doctor email"
+        )
 
     patient = Patient(
         email=patient_data.email,
@@ -68,7 +76,7 @@ async def create_patient(
         trigger_factors=patient_data.trigger_factors,
         medical_history=patient_data.medical_history,
         emergency_contacts=[],  # Empty initially, patient will add from mobile
-        treating_neurologist=patient_data.treating_neurologist or doctor_email,
+        treating_neurologist=doctor_email,  # FORCE assignment to current doctor
         hospital=patient_data.hospital,
         hashed_password=get_password_hash(patient_data.password),
         is_active=True,
