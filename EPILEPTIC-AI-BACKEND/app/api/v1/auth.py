@@ -331,3 +331,97 @@ async def read_users_me(
 
     # Fallback to current_user (for non-doctor users or if doctor not found)
     return current_user
+
+
+@router.post("/forgot-password")
+async def forgot_password(
+    email: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Request password reset.
+    Sends a password reset token to the user's email.
+    Note: In production, this should send an actual email with a reset link.
+    """
+    from app.models.user import User
+
+    # Find user by email
+    user = db.query(User).filter(User.email == email).first()
+
+    # Don't reveal if user exists or not (security best practice)
+    # Always return success message
+    if user:
+        # Generate a password reset token (valid for 1 hour)
+        reset_token = create_access_token(
+            data={"sub": user.email, "type": "password_reset"},
+            expires_delta=timedelta(hours=1)
+        )
+
+        # TODO: In production, send email with reset link
+        # For now, we'll return the token (ONLY FOR DEVELOPMENT)
+        # In production, remove the token from response
+        return {
+            "message": "If the email exists, a password reset link has been sent",
+            "reset_token": reset_token  # REMOVE THIS IN PRODUCTION
+        }
+
+    return {
+        "message": "If the email exists, a password reset link has been sent"
+    }
+
+
+@router.post("/reset-password")
+async def reset_password(
+    reset_token: str,
+    new_password: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Reset password using the reset token.
+    """
+    from app.models.user import User
+    from app.core.security import get_password_hash
+    import jwt
+    from app.core.config import settings
+
+    try:
+        # Decode the reset token
+        payload = jwt.decode(
+            reset_token,
+            settings.SECRET_KEY,
+            algorithms=[settings.ALGORITHM]
+        )
+        email = payload.get("sub")
+        token_type = payload.get("type")
+
+        # Verify token type
+        if token_type != "password_reset":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid token type"
+            )
+
+        # Find user
+        user = db.query(User).filter(User.email == email).first()
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+
+        # Update password
+        user.hashed_password = get_password_hash(new_password)
+        db.commit()
+
+        return {"message": "Password reset successfully"}
+
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Reset token has expired"
+        )
+    except jwt.JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid reset token"
+        )

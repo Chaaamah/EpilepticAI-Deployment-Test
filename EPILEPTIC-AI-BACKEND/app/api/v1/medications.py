@@ -5,8 +5,8 @@ from datetime import datetime
 import json
 
 from app.core.database import get_db
-from app.models.medication import Medication
-from app.schemas.medication import MedicationCreate, MedicationUpdate, MedicationInDB
+from app.models.medication import Medication, MedicationLog
+from app.schemas.medication import MedicationCreate, MedicationUpdate, MedicationInDB, MedicationLogCreate, MedicationLogInDB
 from app.api.deps import get_current_patient
 
 router = APIRouter()
@@ -123,9 +123,10 @@ async def delete_medication(
     return {"message": f"Medication {medication.name} deleted successfully"}
 
 
-@router.post("/{medication_id}/take")
+@router.post("/{medication_id}/take", response_model=MedicationLogInDB)
 async def take_medication(
     medication_id: int,
+    log_data: MedicationLogCreate = None,
     current_patient=Depends(get_current_patient),
     db: Session = Depends(get_db)
 ):
@@ -141,10 +142,28 @@ async def take_medication(
             detail="Medication not found"
         )
 
-    medication.last_taken = datetime.utcnow()
-    db.commit()
+    # Use provided data or defaults
+    taken_at = log_data.taken_at if log_data and log_data.taken_at else datetime.utcnow()
+    log_status = log_data.status if log_data and log_data.status else "taken"
+    notes = log_data.notes if log_data else None
 
-    return {"message": "Medication intake recorded"}
+    # Create medication log
+    medication_log = MedicationLog(
+        medication_id=medication_id,
+        patient_id=current_patient.id,
+        taken_at=taken_at,
+        status=log_status,
+        notes=notes
+    )
+
+    db.add(medication_log)
+
+    # Update medication's last_taken timestamp
+    medication.last_taken = taken_at
+    db.commit()
+    db.refresh(medication_log)
+
+    return medication_log
 
 
 @router.get("/logs")
@@ -159,24 +178,27 @@ async def get_medication_logs(
     """
     from datetime import timedelta
 
-    # Get all patient medications
-    medications = db.query(Medication).filter(
-        Medication.patient_id == current_patient.id
-    ).all()
+    # Calculate date range
+    end_date = datetime.utcnow()
+    start_date = end_date - timedelta(days=days)
 
+    # Get medication logs from database
+    medication_logs = db.query(MedicationLog).filter(
+        MedicationLog.patient_id == current_patient.id,
+        MedicationLog.taken_at >= start_date,
+        MedicationLog.taken_at <= end_date
+    ).order_by(MedicationLog.taken_at.desc()).all()
+
+    # Convert to dict format for response
     logs = []
-    for med in medications:
-        if med.last_taken:
-            logs.append({
-                "medication_id": med.id,
-                "medication_name": med.name,
-                "dosage": med.dosage,
-                "taken_at": med.last_taken,
-                "status": "taken"
-            })
-
-    # Sort by taken_at descending
-    logs.sort(key=lambda x: x["taken_at"], reverse=True)
+    for log in medication_logs:
+        logs.append({
+            "id": log.id,
+            "medication_id": log.medication_id,
+            "taken_at": log.taken_at.isoformat(),
+            "status": log.status,
+            "notes": log.notes
+        })
 
     return {
         "logs": logs,

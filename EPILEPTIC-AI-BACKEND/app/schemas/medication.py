@@ -43,6 +43,28 @@ class MedicationInDB(MedicationBase):
     adherence_rate: Optional[float] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
-    
+
+    class Config:
+        from_attributes = True
+
+
+class MedicationLogBase(BaseModel):
+    taken_at: datetime
+    status: str = "taken"  # taken, missed, skipped
+    notes: Optional[str] = None
+
+
+class MedicationLogCreate(BaseModel):
+    status: Optional[str] = "taken"
+    taken_at: Optional[datetime] = None
+    notes: Optional[str] = None
+
+
+class MedicationLogInDB(MedicationLogBase):
+    id: int
+    medication_id: int
+    patient_id: int
+    created_at: datetime
+
     class Config:
         from_attributes = True

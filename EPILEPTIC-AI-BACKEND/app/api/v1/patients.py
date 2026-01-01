@@ -8,6 +8,7 @@ from app.core.security import get_current_user
 from app.models.patient import Patient
 from app.models.user import User
 from app.schemas.patient import PatientUpdate, PatientInDB, EmergencyContact
+from app.schemas.user import UserResponse
 from app.api.deps import get_current_patient_user
 
 router = APIRouter()
@@ -22,22 +23,31 @@ class EmergencyContactFromPhone(BaseModel):
     priority: int = 1
     notification_method: str = "sms"
 
-@router.get("/me", response_model=PatientInDB)
+@router.get("/me", response_model=UserResponse)
 async def get_me(
     current_patient = Depends(get_current_patient_user),
     db: Session = Depends(get_db)
 ):
     """Get current patient profile"""
-    # If current user is from User table, get Patient record
+    # Always return User object for consistency with mobile app
     if isinstance(current_patient, User):
-        patient = db.query(Patient).filter(Patient.email == current_patient.email).first()
-        if not patient:
+        return current_patient
+
+    # If coming from legacy Patient table, convert to User
+    if isinstance(current_patient, Patient):
+        # Find corresponding User record
+        user = db.query(User).filter(User.email == current_patient.email).first()
+        if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Patient profile not found"
+                detail="User record not found"
             )
-        return patient
-    return current_patient
+        return user
+
+    raise HTTPException(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        detail="Invalid user type"
+    )
 
 @router.put("/me", response_model=PatientInDB)
 async def update_me(

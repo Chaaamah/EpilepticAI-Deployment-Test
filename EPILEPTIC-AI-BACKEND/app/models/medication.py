@@ -49,6 +49,30 @@ class Medication(Base):
     
     # Relationships
     patient = relationship("Patient", back_populates="medications")
-    
+    logs = relationship("MedicationLog", back_populates="medication", cascade="all, delete-orphan")
+
     def __repr__(self):
         return f"<Medication(id={self.id}, name={self.name})>"
+
+
+class MedicationLog(Base):
+    __tablename__ = "medication_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    medication_id = Column(Integer, ForeignKey("medications.id"), nullable=False)
+    patient_id = Column(Integer, ForeignKey("patients.id"), nullable=False)
+
+    # Log Details
+    taken_at = Column(DateTime(timezone=True), nullable=False)
+    status = Column(String, default="taken")  # taken, missed, skipped
+    notes = Column(Text, nullable=True)
+
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationships
+    medication = relationship("Medication", back_populates="logs")
+    patient = relationship("Patient")
+
+    def __repr__(self):
+        return f"<MedicationLog(id={self.id}, medication_id={self.medication_id}, status={self.status})>"
