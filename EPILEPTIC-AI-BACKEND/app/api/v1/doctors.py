@@ -103,7 +103,7 @@ async def get_patients_list(
     - Doctor users: see only patients assigned to them (filtered by treating_neurologist)
     """
     # Check if user is admin
-    if current_user.role == "admin":
+    if hasattr(current_user, 'role') and current_user.role == UserRole.ADMIN:
         # Admin sees all patients
         patients = db.query(Patient).offset(skip).limit(limit).all()
         return patients
@@ -140,7 +140,7 @@ async def get_patient_by_id(
     - Doctor users: can only access patients assigned to them
     """
     # If admin, allow access to any patient
-    if current_user.role == "admin":
+    if hasattr(current_user, 'role') and current_user.role == UserRole.ADMIN:
         patient = db.query(Patient).filter(Patient.id == patient_id).first()
         if not patient:
             raise HTTPException(
@@ -191,7 +191,7 @@ async def update_patient_by_doctor(
         )
 
     # For doctors: verify patient belongs to them
-    if current_user.role != "admin":
+    if not (hasattr(current_user, 'role') and current_user.role == UserRole.ADMIN):
         doctor_email = None
         if isinstance(current_user, Doctor):
             doctor_email = current_user.email
@@ -246,7 +246,7 @@ async def delete_patient_by_doctor(
         )
 
     # For doctors: verify patient belongs to them
-    if current_user.role != "admin":
+    if not (hasattr(current_user, 'role') and current_user.role == UserRole.ADMIN):
         doctor_email = None
         if isinstance(current_user, Doctor):
             doctor_email = current_user.email
