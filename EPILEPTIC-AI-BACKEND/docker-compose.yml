@@ -1,0 +1,123 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: epileptic_postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: epileptic_ai
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - epileptic_network
+
+  redis:
+    image: redis:7-alpine
+    container_name: epileptic_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - epileptic_network
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: epileptic_backend
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@postgres:5432/epileptic_ai
+      - REDIS_URL=redis://redis:6379
+      - SECRET_KEY=change-this-to-a-secure-random-string-in-production
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=10080
+      - REFRESH_TOKEN_EXPIRE_DAYS=7
+      - ENVIRONMENT=development
+      - DEBUG=true
+      - PREDICTION_THRESHOLD=0.7
+      - ENABLE_SMS_ALERTS=true
+      - ENABLE_PUSH_NOTIFICATIONS=true
+      - TWILIO_ACCOUNT_SID=AC5590ab79ecb98df2e735b52c5a00976f
+      - TWILIO_AUTH_TOKEN=09111686dbdd329e033643b87fc4616c
+      - TWILIO_PHONE_NUMBER=+1234567890
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - ./app:/app/app
+      - ./alembic:/app/alembic
+      - ./scripts:/app/scripts
+    networks:
+      - epileptic_network
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: epileptic_worker
+    command: python -m app.tasks.scheduler
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@postgres:5432/epileptic_ai
+      - REDIS_URL=redis://redis:6379
+      - SECRET_KEY=change-this-to-a-secure-random-string-in-production
+      - PREDICTION_THRESHOLD=0.7
+      - TWILIO_ACCOUNT_SID=AC5590ab79ecb98df2e735b52c5a00976f
+      - TWILIO_AUTH_TOKEN=09111686dbdd329e033643b87fc4616c
+      - TWILIO_PHONE_NUMBER=+1234567890
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - ./app:/app/app
+    networks:
+      - epileptic_network
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: epileptic_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@epileptic.ai
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - postgres
+    networks:
+      - epileptic_network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  pgadmin_data:
+
+networks:
+  epileptic_network:
+    driver: bridge

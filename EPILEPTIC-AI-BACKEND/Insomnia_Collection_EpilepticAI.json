@@ -1,0 +1,340 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2025-12-29T19:00:00.000Z",
+  "__export_source": "insomnia.desktop.app:v2023.5.8",
+  "resources": [
+    {
+      "_id": "wrk_epileptic_ai",
+      "_type": "workspace",
+      "name": "EpilepticAI Backend Tests",
+      "description": "Tests complets pour le backend EpilepticAI"
+    },
+    {
+      "_id": "env_base",
+      "_type": "environment",
+      "name": "Base Environment",
+      "data": {
+        "base_url": "http://localhost:8000",
+        "patient_email": "patient@test.com",
+        "patient_password": "password123",
+        "patient_token": "",
+        "doctor_token": "",
+        "alert_id": ""
+      }
+    },
+    {
+      "_id": "req_register_doctor",
+      "_type": "request",
+      "name": "1.1 - Register Doctor",
+      "url": "{{ _.base_url }}/api/v1/auth/register/doctor",
+      "method": "POST",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"email\": \"doctor1@test.com\",\n  \"full_name\": \"Dr. Jean Dupont\",\n  \"phone\": \"0612345678\",\n  \"specialization\": \"Neurologie\",\n  \"hospital\": \"CHU de Paris\",\n  \"license_number\": \"DR123456\",\n  \"password\": \"SecurePass123!\",\n  \"confirm_password\": \"SecurePass123!\"\n}"
+      }
+    },
+    {
+      "_id": "req_login_doctor",
+      "_type": "request",
+      "name": "1.2 - Login Doctor",
+      "url": "{{ _.base_url }}/api/v1/auth/login/doctor",
+      "method": "POST",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"email\": \"doctor1@test.com\",\n  \"password\": \"SecurePass123!\"\n}"
+      }
+    },
+    {
+      "_id": "req_login_patient",
+      "_type": "request",
+      "name": "1.3 - Login Patient",
+      "url": "{{ _.base_url }}/api/v1/auth/login/patient",
+      "method": "POST",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"email\": \"{{ _.patient_email }}\",\n  \"password\": \"{{ _.patient_password }}\"\n}"
+      }
+    },
+    {
+      "_id": "req_get_me",
+      "_type": "request",
+      "name": "1.4 - Get Current User",
+      "url": "{{ _.base_url }}/api/v1/auth/me",
+      "method": "GET",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.patient_token }}"
+        }
+      ]
+    },
+    {
+      "_id": "req_grant_permission",
+      "_type": "request",
+      "name": "2.1 - Grant Contacts Permission",
+      "url": "{{ _.base_url }}/api/v1/contacts/permissions",
+      "method": "POST",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.patient_token }}"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"permission_granted\": true,\n  \"platform\": \"ios\"\n}"
+      }
+    },
+    {
+      "_id": "req_get_permission",
+      "_type": "request",
+      "name": "2.2 - Get Contacts Permission",
+      "url": "{{ _.base_url }}/api/v1/contacts/permissions",
+      "method": "GET",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.patient_token }}"
+        }
+      ]
+    },
+    {
+      "_id": "req_add_contact_1",
+      "_type": "request",
+      "name": "2.3 - Add Contact #1 (Mère)",
+      "url": "{{ _.base_url }}/api/v1/contacts/",
+      "method": "POST",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.patient_token }}"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"Marie Dupont\",\n  \"relationship\": \"Mère\",\n  \"phone\": \"+33698765432\",\n  \"email\": \"marie@test.com\",\n  \"priority\": 1,\n  \"notification_method\": \"sms+call\"\n}"
+      }
+    },
+    {
+      "_id": "req_add_contact_2",
+      "_type": "request",
+      "name": "2.4 - Add Contact #2 (Père)",
+      "url": "{{ _.base_url }}/api/v1/contacts/",
+      "method": "POST",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.patient_token }}"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"Pierre Dupont\",\n  \"relationship\": \"Père\",\n  \"phone\": \"+33687654321\",\n  \"email\": \"pierre@test.com\",\n  \"priority\": 2,\n  \"notification_method\": \"sms\"\n}"
+      }
+    },
+    {
+      "_id": "req_list_contacts",
+      "_type": "request",
+      "name": "2.5 - List All Contacts",
+      "url": "{{ _.base_url }}/api/v1/contacts/",
+      "method": "GET",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.patient_token }}"
+        }
+      ]
+    },
+    {
+      "_id": "req_predict_1",
+      "_type": "request",
+      "name": "3.1 - Predict #1 (Normal)",
+      "url": "{{ _.base_url }}/api/v1/seizure-detection/predict-simple",
+      "method": "POST",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.patient_token }}"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"heart_rate\": 75.0,\n  \"heart_rate_variability\": 50.0,\n  \"spo2\": 98.0,\n  \"temperature\": 36.7\n}"
+      }
+    },
+    {
+      "_id": "req_predict_2",
+      "_type": "request",
+      "name": "3.2 - Predict #2 (Normal)",
+      "url": "{{ _.base_url }}/api/v1/seizure-detection/predict-simple",
+      "method": "POST",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.patient_token }}"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"heart_rate\": 78.0,\n  \"heart_rate_variability\": 52.0,\n  \"spo2\": 97.0,\n  \"temperature\": 36.8\n}"
+      }
+    },
+    {
+      "_id": "req_predict_3",
+      "_type": "request",
+      "name": "3.3 - Predict #3 (Normal)",
+      "url": "{{ _.base_url }}/api/v1/seizure-detection/predict-simple",
+      "method": "POST",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.patient_token }}"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"heart_rate\": 82.0,\n  \"heart_rate_variability\": 48.0,\n  \"spo2\": 98.0,\n  \"temperature\": 36.9\n}"
+      }
+    },
+    {
+      "_id": "req_predict_high_1",
+      "_type": "request",
+      "name": "4.1 - HIGH RISK #1 (Elevated)",
+      "url": "{{ _.base_url }}/api/v1/seizure-detection/predict-simple",
+      "method": "POST",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.patient_token }}"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"heart_rate\": 95.0,\n  \"heart_rate_variability\": 40.0,\n  \"spo2\": 95.0,\n  \"temperature\": 37.2\n}"
+      }
+    },
+    {
+      "_id": "req_predict_high_2",
+      "_type": "request",
+      "name": "4.2 - HIGH RISK #2 (Higher)",
+      "url": "{{ _.base_url }}/api/v1/seizure-detection/predict-simple",
+      "method": "POST",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.patient_token }}"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"heart_rate\": 110.0,\n  \"heart_rate_variability\": 32.0,\n  \"spo2\": 93.0,\n  \"temperature\": 37.8\n}"
+      }
+    },
+    {
+      "_id": "req_predict_high_3",
+      "_type": "request",
+      "name": "4.3 - HIGH RISK #3 (CRITICAL - Trigger Alert)",
+      "url": "{{ _.base_url }}/api/v1/seizure-detection/predict-simple",
+      "method": "POST",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.patient_token }}"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"heart_rate\": 130.0,\n  \"heart_rate_variability\": 22.0,\n  \"spo2\": 91.0,\n  \"temperature\": 38.5\n}"
+      }
+    },
+    {
+      "_id": "req_countdown_status",
+      "_type": "request",
+      "name": "4.4 - Get Countdown Status",
+      "url": "{{ _.base_url }}/api/v1/seizure-detection/countdown-status",
+      "method": "GET",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.patient_token }}"
+        }
+      ]
+    },
+    {
+      "_id": "req_confirm_safety",
+      "_type": "request",
+      "name": "4.5 - Confirm Safety (Cancel SMS)",
+      "url": "{{ _.base_url }}/api/v1/seizure-detection/confirm",
+      "method": "POST",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.patient_token }}"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"alert_id\": 1,\n  \"notes\": \"Je vais bien, c'était juste du sport\"\n}"
+      }
+    }
+  ]
+}
