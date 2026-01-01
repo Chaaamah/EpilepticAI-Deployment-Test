@@ -38,10 +38,23 @@ async def get_me(
         # Find corresponding User record
         user = db.query(User).filter(User.email == current_patient.email).first()
         if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="User record not found"
-            )
+            # If no User record exists, create a temporary UserResponse-like dict
+            # This handles legacy patients that don't have a User record yet
+            from app.models.user import UserRole
+            return {
+                "id": current_patient.id,
+                "email": current_patient.email,
+                "full_name": current_patient.full_name,
+                "phone": current_patient.phone,
+                "role": UserRole.PATIENT.value,  # Default to patient role
+                "is_active": current_patient.is_active,
+                "is_verified": current_patient.is_verified if hasattr(current_patient, 'is_verified') else True,
+                "is_superuser": False,
+                "profile_picture": None,
+                "created_at": current_patient.created_at,
+                "updated_at": current_patient.updated_at,
+                "last_login": None
+            }
         return user
 
     raise HTTPException(
