@@ -7,9 +7,12 @@ from app.core.security import get_password_hash
 from app.models.doctor import Doctor
 from app.models.patient import Patient
 from app.models.user import User, UserRole
+from app.models.medication import Medication
 from app.schemas.doctor import DoctorCreate, DoctorInDB, DoctorUpdate
 from app.schemas.patient import PatientCreateByDoctor, PatientInDB, PatientUpdate
+from app.schemas.medication import MedicationCreate, MedicationUpdate, MedicationInDB
 from app.api.deps import get_current_doctor_user, get_current_admin_or_doctor, get_current_admin
+import json
 
 router = APIRouter()
 
@@ -302,6 +305,123 @@ async def delete_doctor_by_admin(
     db.commit()
     
     return {"message": f"Doctor {doctor.full_name} has been deactivated"}
+
+# ==================== MEDICATION MANAGEMENT BY DOCTORS ====================
+
+@router.get("/patients/{patient_id}/medications", response_model=List[MedicationInDB], summary="Get patient medications (Doctor only)")
+async def get_patient_medications(
+    patient_id: int,
+    status_filter: str = None,
+    db: Session = Depends(get_db),
+    current_doctor = Depends(get_current_doctor_user)
+):
+    """Get all medications for a specific patient. Only accessible by doctors."""
+    # Verify patient exists
+    patient = db.query(Patient).filter(Patient.id == patient_id).first()
+    if not patient:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Patient not found"
+        )
+
+    # Query medications
+    query = db.query(Medication).filter(Medication.patient_id == patient_id)
+
+    if status_filter:
+        query = query.filter(Medication.status == status_filter)
+
+    medications = query.order_by(Medication.name.asc()).all()
+    return medications
+
+@router.post("/patients/{patient_id}/medications", response_model=MedicationInDB, summary="Create medication for patient (Doctor only)")
+async def create_patient_medication(
+    patient_id: int,
+    medication_data: MedicationCreate,
+    db: Session = Depends(get_db),
+    current_doctor = Depends(get_current_doctor_user)
+):
+    """Create a new medication for a patient. Only accessible by doctors."""
+    # Verify patient exists
+    patient = db.query(Patient).filter(Patient.id == patient_id).first()
+    if not patient:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Patient not found"
+        )
+
+    # Create medication
+    medication = Medication(
+        patient_id=patient_id,
+        specific_times=json.dumps(medication_data.specific_times) if medication_data.specific_times else None,
+        reminder_times=json.dumps(medication_data.reminder_times) if medication_data.reminder_times else None,
+        **medication_data.dict(exclude={"specific_times", "reminder_times"})
+    )
+
+    db.add(medication)
+    db.commit()
+    db.refresh(medication)
+
+    return medication
+
+@router.put("/patients/{patient_id}/medications/{medication_id}", response_model=MedicationInDB, summary="Update patient medication (Doctor only)")
+async def update_patient_medication(
+    patient_id: int,
+    medication_id: int,
+    medication_data: MedicationUpdate,
+    db: Session = Depends(get_db),
+    current_doctor = Depends(get_current_doctor_user)
+):
+    """Update a medication for a patient. Only accessible by doctors."""
+    # Verify medication exists and belongs to patient
+    medication = db.query(Medication).filter(
+        Medication.id == medication_id,
+        Medication.patient_id == patient_id
+    ).first()
+
+    if not medication:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Medication not found"
+        )
+
+    # Update medication
+    update_data = medication_data.dict(exclude_unset=True)
+
+    for field, value in update_data.items():
+        if field in ["specific_times", "reminder_times"] and value is not None:
+            setattr(medication, field, json.dumps(value))
+        else:
+            setattr(medication, field, value)
+
+    db.commit()
+    db.refresh(medication)
+
+    return medication
+
+@router.delete("/patients/{patient_id}/medications/{medication_id}", summary="Delete patient medication (Doctor only)")
+async def delete_patient_medication(
+    patient_id: int,
+    medication_id: int,
+    db: Session = Depends(get_db),
+    current_doctor = Depends(get_current_doctor_user)
+):
+    """Delete a medication for a patient. Only accessible by doctors."""
+    # Verify medication exists and belongs to patient
+    medication = db.query(Medication).filter(
+        Medication.id == medication_id,
+        Medication.patient_id == patient_id
+    ).first()
+
+    if not medication:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Medication not found"
+        )
+
+    db.delete(medication)
+    db.commit()
+
+    return {"message": f"Medication {medication.name} deleted successfully"}
 
 # ==================== PUBLIC ENDPOINTS ====================
 
