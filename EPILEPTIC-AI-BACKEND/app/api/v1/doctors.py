@@ -82,17 +82,35 @@ async def create_patient(
 
     return patient
 
-@router.get("/patients", response_model=List[PatientInDB], summary="Get all patients (Doctor/Admin)")
+@router.get("/patients", response_model=List[PatientInDB], summary="Get patients assigned to current doctor")
 async def get_patients_list(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_admin_or_doctor)
+    current_doctor = Depends(get_current_doctor_user)
 ):
     """
-    Get list of all patients. Accessible by doctors and admins.
+    Get list of patients assigned to the current doctor.
+    Each doctor only sees their own patients (filtered by treating_neurologist).
     """
-    patients = db.query(Patient).offset(skip).limit(limit).all()
+    # Get doctor's email
+    doctor_email = None
+    if isinstance(current_doctor, Doctor):
+        doctor_email = current_doctor.email
+    elif hasattr(current_doctor, 'email'):
+        doctor_email = current_doctor.email
+
+    if not doctor_email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Could not determine doctor email"
+        )
+
+    # Filter patients by treating_neurologist (doctor's email)
+    patients = db.query(Patient).filter(
+        Patient.treating_neurologist == doctor_email
+    ).offset(skip).limit(limit).all()
+
     return patients
 
 @router.get("/patients/{patient_id}", response_model=PatientInDB, summary="Get patient by ID (Doctor only)")
@@ -101,13 +119,24 @@ async def get_patient_by_id(
     db: Session = Depends(get_db),
     current_doctor = Depends(get_current_doctor_user)
 ):
-    """Get patient details by ID. Only accessible by doctors."""
-    patient = db.query(Patient).filter(Patient.id == patient_id).first()
+    """Get patient details by ID. Only accessible by the patient's assigned doctor."""
+    # Get doctor's email
+    doctor_email = None
+    if isinstance(current_doctor, Doctor):
+        doctor_email = current_doctor.email
+    elif hasattr(current_doctor, 'email'):
+        doctor_email = current_doctor.email
+
+    # Find patient and verify it belongs to this doctor
+    patient = db.query(Patient).filter(
+        Patient.id == patient_id,
+        Patient.treating_neurologist == doctor_email
+    ).first()
 
     if not patient:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Patient not found"
+            detail="Patient not found or not assigned to you"
         )
 
     return patient
@@ -363,13 +392,24 @@ async def get_patient_medications(
     db: Session = Depends(get_db),
     current_doctor = Depends(get_current_doctor_user)
 ):
-    """Get all medications for a specific patient. Only accessible by doctors."""
-    # Verify patient exists
-    patient = db.query(Patient).filter(Patient.id == patient_id).first()
+    """Get all medications for a specific patient. Only accessible by the patient's assigned doctor."""
+    # Get doctor's email
+    doctor_email = None
+    if isinstance(current_doctor, Doctor):
+        doctor_email = current_doctor.email
+    elif hasattr(current_doctor, 'email'):
+        doctor_email = current_doctor.email
+
+    # Verify patient exists and belongs to this doctor
+    patient = db.query(Patient).filter(
+        Patient.id == patient_id,
+        Patient.treating_neurologist == doctor_email
+    ).first()
+
     if not patient:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Patient not found"
+            detail="Patient not found or not assigned to you"
         )
 
     # Query medications
@@ -388,13 +428,24 @@ async def create_patient_medication(
     db: Session = Depends(get_db),
     current_doctor = Depends(get_current_doctor_user)
 ):
-    """Create a new medication for a patient. Only accessible by doctors."""
-    # Verify patient exists
-    patient = db.query(Patient).filter(Patient.id == patient_id).first()
+    """Create a new medication for a patient. Only accessible by the patient's assigned doctor."""
+    # Get doctor's email
+    doctor_email = None
+    if isinstance(current_doctor, Doctor):
+        doctor_email = current_doctor.email
+    elif hasattr(current_doctor, 'email'):
+        doctor_email = current_doctor.email
+
+    # Verify patient exists and belongs to this doctor
+    patient = db.query(Patient).filter(
+        Patient.id == patient_id,
+        Patient.treating_neurologist == doctor_email
+    ).first()
+
     if not patient:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Patient not found"
+            detail="Patient not found or not assigned to you"
         )
 
     # Create medication
