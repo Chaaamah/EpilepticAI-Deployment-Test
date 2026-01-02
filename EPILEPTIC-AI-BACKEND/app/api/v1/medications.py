@@ -11,7 +11,7 @@ from app.api.deps import get_current_patient
 
 router = APIRouter()
 
-@router.post("/", response_model=MedicationInDB)
+@router.post("", response_model=MedicationInDB)
 async def create_medication(
     medication_data: MedicationCreate,
     current_patient=Depends(get_current_patient),
@@ -29,7 +29,7 @@ async def create_medication(
     
     return medication
 
-@router.get("/", response_model=List[MedicationInDB])
+@router.get("", response_model=List[MedicationInDB])
 async def get_medications(
     active_only: bool = True,
     current_patient=Depends(get_current_patient),
