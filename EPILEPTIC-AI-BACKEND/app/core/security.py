@@ -98,12 +98,17 @@ def get_current_user(
     """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
+        detail="Could not validate credentials (v5-auth-fail)",
         headers={"WWW-Authenticate": "Bearer"},
     )
     
     if not token:
-        raise credentials_exception
+        print("❌ No token provided to get_current_user")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="No authentication token provided (v5-no-token)",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     
     try:
         print(f"🔐 Validating token: {token[:10]}...")
@@ -117,8 +122,12 @@ def get_current_user(
         print(f"👤 Token payload: sub={email}, user_type={user_type}")
         
         if not email or not user_type:
-            print("❌ Missing claims in token")
-            raise credentials_exception
+            print(f"❌ Missing claims in token: email={email}, user_type={user_type}")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=f"Token missing required claims (v5-missing-claims: {user_type})",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
         
         # Priority 1: Check User table (Unified system)
         user = db.query(User).filter(User.email == email).first()
@@ -159,21 +168,31 @@ def get_current_user(
                     # Fallback to the legacy user object for this request
                     user = legacy_user
             else:
-                print(f"❌ User {email} not found in any table")
-                raise credentials_exception
+                print(f"❌ User {email} not found in any table (searched users and {user_type})")
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail=f"User {email} not found in database (v5-user-not-found)",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
         
         # Check if user is active (supports both User and legacy models)
         is_active = getattr(user, 'is_active', True)
         if not is_active:
+            print(f"❌ User {email} is inactive")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Inactive user"
+                detail="Inactive user (v5-inactive)"
             )
         
         return user
         
-    except JWTError:
-        raise credentials_exception
+    except JWTError as e:
+        print(f"❌ JWT Decoding error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Could not validate credentials (v5-jwt-error: {str(e)})",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
 def verify_token(token: str) -> Optional[str]:
     """
