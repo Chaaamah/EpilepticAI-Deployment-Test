@@ -1,6 +1,7 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List
-from datetime import datetime, date
+from datetime import datetime
+import json
 
 class MedicationBase(BaseModel):
     name: str
@@ -21,6 +22,16 @@ class MedicationBase(BaseModel):
     reminder_enabled: bool = True
     reminder_times: Optional[List[str]] = None
 
+    @field_validator("specific_times", "reminder_times", mode="before")
+    @classmethod
+    def parse_json_list(cls, v):
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except:
+                return []
+        return v
+
 class MedicationCreate(MedicationBase):
     pass
 
@@ -35,6 +46,18 @@ class MedicationUpdate(BaseModel):
     instructions: Optional[str] = None
     side_effects: Optional[str] = None
     reminder_enabled: Optional[bool] = None
+    specific_times: Optional[List[str]] = None
+    reminder_times: Optional[List[str]] = None
+
+    @field_validator("specific_times", "reminder_times", mode="before")
+    @classmethod
+    def parse_json_list(cls, v):
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except:
+                return []
+        return v
 
 class MedicationInDB(MedicationBase):
     id: int

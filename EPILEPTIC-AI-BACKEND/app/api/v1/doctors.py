@@ -514,9 +514,7 @@ async def create_patient_medication(
     # Create medication
     medication = Medication(
         patient_id=patient_id,
-        specific_times=json.dumps(medication_data.specific_times) if medication_data.specific_times else None,
-        reminder_times=json.dumps(medication_data.reminder_times) if medication_data.reminder_times else None,
-        **medication_data.dict(exclude={"specific_times", "reminder_times"})
+        **medication_data.dict()
     )
 
     db.add(medication)
@@ -550,10 +548,7 @@ async def update_patient_medication(
     update_data = medication_data.dict(exclude_unset=True)
 
     for field, value in update_data.items():
-        if field in ["specific_times", "reminder_times"] and value is not None:
-            setattr(medication, field, json.dumps(value))
-        else:
-            setattr(medication, field, value)
+        setattr(medication, field, value)
 
     db.commit()
     db.refresh(medication)

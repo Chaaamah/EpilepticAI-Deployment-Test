@@ -1,6 +1,7 @@
-from pydantic import BaseModel, EmailStr, Field, validator
+from pydantic import BaseModel, EmailStr, Field, field_validator
 from typing import Optional, List
 from datetime import datetime, date
+import json
 
 class EmergencyContact(BaseModel):
     name: str
@@ -35,13 +36,24 @@ class PatientBase(BaseModel):
     address: Optional[str] = None
     health_status: Optional[str] = None
 
+    @field_validator("trigger_factors", "emergency_contacts", mode="before")
+    @classmethod
+    def parse_json_list(cls, v):
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except:
+                return []
+        return v
+
 class PatientCreate(PatientBase):
     password: str = Field(..., min_length=8)
     confirm_password: str = Field(..., min_length=8)
 
-    @validator('confirm_password')
-    def passwords_match(cls, v, values, **kwargs):
-        if 'password' in values and v != values['password']:
+    @field_validator('confirm_password')
+    @classmethod
+    def passwords_match(cls, v, info):
+        if 'password' in info.data and v != info.data['password']:
             raise ValueError('passwords do not match')
         return v
 
@@ -63,6 +75,16 @@ class PatientCreateByDoctor(BaseModel):
     hospital: Optional[str] = None
     address: Optional[str] = None
 
+    @field_validator("trigger_factors", mode="before")
+    @classmethod
+    def parse_json_list(cls, v):
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except:
+                return []
+        return v
+
 class PatientUpdate(BaseModel):
     email: Optional[EmailStr] = None
     full_name: Optional[str] = None
@@ -78,6 +100,16 @@ class PatientUpdate(BaseModel):
     hospital: Optional[str] = None
     address: Optional[str] = None
     health_status: Optional[str] = None
+
+    @field_validator("trigger_factors", "emergency_contacts", mode="before")
+    @classmethod
+    def parse_json_list(cls, v):
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except:
+                return []
+        return v
 
 class PatientLogin(BaseModel):
     email: EmailStr

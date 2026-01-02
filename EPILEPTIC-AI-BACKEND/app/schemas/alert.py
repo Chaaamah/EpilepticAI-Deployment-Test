@@ -1,6 +1,7 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, Dict, Any, List
 from datetime import datetime
+import json
 
 class AlertBase(BaseModel):
     alert_type: str = Field(..., pattern="^(prediction|fall|medication|emergency|system)$")
@@ -8,6 +9,16 @@ class AlertBase(BaseModel):
     title: str
     message: str
     data: Optional[Dict[str, Any]] = None
+
+    @field_validator("data", mode="before")
+    @classmethod
+    def parse_json_dict(cls, v):
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except:
+                return {}
+        return v
 
 class AlertCreate(AlertBase):
     pass
@@ -31,6 +42,16 @@ class AlertInDB(AlertBase):
     resolution_notes: Optional[str] = None
     triggered_at: datetime
     expires_at: Optional[datetime] = None
+
+    @field_validator("notifications_sent", mode="before")
+    @classmethod
+    def parse_json_list(cls, v):
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except:
+                return []
+        return v
     
     class Config:
         from_attributes = True

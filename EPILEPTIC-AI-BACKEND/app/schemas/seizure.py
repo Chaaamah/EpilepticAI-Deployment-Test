@@ -1,6 +1,7 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List
 from datetime import datetime
+import json
 
 class SeizureBase(BaseModel):
     seizure_type: Optional[str] = None
@@ -16,17 +17,38 @@ class SeizureBase(BaseModel):
     medication_taken: bool = False
     emergency_called: bool = False
 
+    @field_validator("symptoms", mode="before")
+    @classmethod
+    def parse_json_list(cls, v):
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except:
+                return []
+        return v
+
 class SeizureCreate(SeizureBase):
     pass
 
 class SeizureUpdate(BaseModel):
     end_time: Optional[datetime] = None
     intensity: Optional[float] = None
+    symptoms: Optional[List[str]] = None
     after_effects: Optional[str] = None
     medication_taken: Optional[bool] = None
     emergency_called: Optional[bool] = None
     confirmed_by_doctor: Optional[bool] = None
     doctor_notes: Optional[str] = None
+
+    @field_validator("symptoms", mode="before")
+    @classmethod
+    def parse_json_list(cls, v):
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except:
+                return []
+        return v
 
 class SeizureInDB(SeizureBase):
     id: int
