@@ -67,15 +67,28 @@ async def get_biometrics(
 
     if startDate and endDate:
         try:
-            # Handle potential ISO format differences
+            # Robust date parsing
             start_dt = datetime.fromisoformat(startDate.replace('Z', '+00:00'))
             end_dt = datetime.fromisoformat(endDate.replace('Z', '+00:00'))
+            
+            # Ensure naive datetimes are treated as UTC if necessary (though fromisoformat with offset handles it)
+            if start_dt.tzinfo is None:
+                from datetime import timezone
+                start_dt = start_dt.replace(tzinfo=timezone.utc)
+            if end_dt.tzinfo is None:
+                from datetime import timezone
+                end_dt = end_dt.replace(tzinfo=timezone.utc)
+
             query = query.filter(Biometric.recorded_at >= start_dt, Biometric.recorded_at <= end_dt)
-        except (ValueError, TypeError):
-            start_time = datetime.utcnow() - timedelta(hours=hours)
+        except (ValueError, TypeError) as e:
+            # Fallback to hours if parsing fails, but don't 500
+            print(f"⚠️ Biometrics date parsing error: {e}. Falling back to hours={hours}")
+            from datetime import timezone
+            start_time = datetime.now(timezone.utc) - timedelta(hours=hours)
             query = query.filter(Biometric.recorded_at >= start_time)
     else:
-        start_time = datetime.utcnow() - timedelta(hours=hours)
+        from datetime import timezone
+        start_time = datetime.now(timezone.utc) - timedelta(hours=hours)
         query = query.filter(Biometric.recorded_at >= start_time)
 
     biometrics = query.order_by(Biometric.recorded_at.desc()).all()

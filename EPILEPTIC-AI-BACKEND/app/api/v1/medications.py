@@ -48,123 +48,6 @@ async def get_medications(
     return medications
 
 
-@router.get("/{medication_id}", response_model=MedicationInDB)
-async def get_medication(
-    medication_id: int,
-    current_patient=Depends(get_current_patient),
-    db: Session = Depends(get_db)
-):
-    """Get a specific medication"""
-    medication = db.query(Medication).filter(
-        Medication.id == medication_id,
-        Medication.patient_id == current_patient.id
-    ).first()
-    
-    if not medication:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Medication not found"
-        )
-    
-    return medication
-
-@router.put("/{medication_id}", response_model=MedicationInDB)
-async def update_medication(
-    medication_id: int,
-    medication_update: MedicationUpdate,
-    current_patient=Depends(get_current_patient),
-    db: Session = Depends(get_db)
-):
-    """Update a medication"""
-    medication = db.query(Medication).filter(
-        Medication.id == medication_id,
-        Medication.patient_id == current_patient.id
-    ).first()
-    
-    if not medication:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Medication not found"
-        )
-    
-    update_data = medication_update.dict(exclude_unset=True)
-    
-    for field, value in update_data.items():
-        setattr(medication, field, value)
-    
-    db.add(medication)
-    db.commit()
-    db.refresh(medication)
-    
-    return medication
-
-@router.delete("/{medication_id}")
-async def delete_medication(
-    medication_id: int,
-    current_patient=Depends(get_current_patient),
-    db: Session = Depends(get_db)
-):
-    """Delete a medication (for mobile app)"""
-    medication = db.query(Medication).filter(
-        Medication.id == medication_id,
-        Medication.patient_id == current_patient.id
-    ).first()
-
-    if not medication:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Medication not found"
-        )
-
-    db.delete(medication)
-    db.commit()
-
-    return {"message": f"Medication {medication.name} deleted successfully"}
-
-
-@router.post("/{medication_id}/take", response_model=MedicationLogInDB)
-async def take_medication(
-    medication_id: int,
-    log_data: MedicationLogCreate = None,
-    current_patient=Depends(get_current_patient),
-    db: Session = Depends(get_db)
-):
-    """Record medication intake"""
-    medication = db.query(Medication).filter(
-        Medication.id == medication_id,
-        Medication.patient_id == current_patient.id
-    ).first()
-
-    if not medication:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Medication not found"
-        )
-
-    # Use provided data or defaults
-    taken_at = log_data.taken_at if log_data and log_data.taken_at else datetime.utcnow()
-    log_status = log_data.status if log_data and log_data.status else "taken"
-    notes = log_data.notes if log_data else None
-
-    # Create medication log
-    medication_log = MedicationLog(
-        medication_id=medication_id,
-        patient_id=current_patient.id,
-        taken_at=taken_at,
-        status=log_status,
-        notes=notes
-    )
-
-    db.add(medication_log)
-
-    # Update medication's last_taken timestamp
-    medication.last_taken = taken_at
-    db.commit()
-    db.refresh(medication_log)
-
-    return medication_log
-
-
 @router.get("/logs")
 async def get_medication_logs(
     days: int = 30,
@@ -204,3 +87,23 @@ async def get_medication_logs(
         "period_days": days,
         "total_entries": len(logs)
     }
+
+@router.get("/{medication_id}", response_model=MedicationInDB)
+async def get_medication(
+    medication_id: int,
+    current_patient=Depends(get_current_patient),
+    db: Session = Depends(get_db)
+):
+    """Get a specific medication"""
+    medication = db.query(Medication).filter(
+        Medication.id == medication_id,
+        Medication.patient_id == current_patient.id
+    ).first()
+    
+    if not medication:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Medication not found"
+        )
+    
+    return medication
