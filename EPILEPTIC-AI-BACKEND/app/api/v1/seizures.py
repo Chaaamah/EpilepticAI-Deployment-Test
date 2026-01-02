@@ -7,6 +7,7 @@ from app.core.database import get_db
 from app.models.seizure import Seizure
 from app.schemas.seizure import SeizureCreate, SeizureUpdate, SeizureInDB
 from app.api.deps import get_current_patient
+from app.services.emergency_service import get_emergency_service
 
 router = APIRouter()
 
@@ -36,6 +37,18 @@ async def create_seizure(
     # Update patient's last seizure date
     current_patient.last_seizure_date = seizure.start_time
     db.commit()
+    
+    # NEW: Automatically trigger emergency SOS when a seizure is reported
+    try:
+        emergency_service = get_emergency_service()
+        await emergency_service.trigger_emergency(
+            db=db,
+            patient_id=current_patient.id,
+            alert_type="EMERGENCY"
+        )
+        print(f"📡 Auto-SOS triggered for patient {current_patient.id}")
+    except Exception as e:
+        print(f"⚠️ Failed to trigger auto-SOS: {e}")
     
     return seizure
 

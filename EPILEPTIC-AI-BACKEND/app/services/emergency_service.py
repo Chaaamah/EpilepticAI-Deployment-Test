@@ -149,6 +149,70 @@ class EmergencyService:
 
         return results
 
+    async def trigger_emergency(
+        self,
+        db: Session,
+        patient_id: int,
+        alert_type: str = "EMERGENCY"
+    ) -> Dict[str, Any]:
+        """
+        Déclenche une urgence manuelle ou automatique simple.
+        Crée l'alerte en DB puis notifie les contacts.
+        """
+        # Créer l'alerte en DB
+        alert = Alert(
+            patient_id=patient_id,
+            alert_type=alert_type,
+            severity="high",
+            title="Urgence Déclenchée",
+            message=f"Alerte d'urgence déclenchée ({alert_type})",
+            is_active=True,
+            risk_score=1.0,
+            confidence=1.0,
+            created_at=datetime.utcnow()
+        )
+        
+        db.add(alert)
+        db.commit()
+        db.refresh(alert)
+        
+        # Déclencher les notifications
+        return await self.trigger_emergency_alert(
+            db=db,
+            patient_id=patient_id,
+            alert_id=alert.id,
+            risk_score=1.0,
+            alert_type=alert_type
+        )
+
+    async def notify_check_in(
+        self,
+        db: Session,
+        patient_id: int
+    ) -> Dict[str, Any]:
+        """
+        Notifie les contacts que le patient va bien après une alerte.
+        """
+        # Récupérer le patient
+        patient = db.query(Patient).filter(Patient.id == patient_id).first()
+        if not patient:
+            raise ValueError(f"Patient {patient_id} not found")
+
+        # Récupérer les contacts
+        contacts = self._parse_emergency_contacts(patient.emergency_contacts)
+        if not contacts:
+            return {"success": False, "message": "No contacts to notify"}
+
+        message = f"✅ EpilepticAI: {patient.full_name} a confirmé qu'il va bien. L'alerte est levée."
+
+        total_sent = 0
+        for contact in contacts:
+            res = await self._send_emergency_sms(contact, message)
+            if res["status"] in ["sent", "delivered", "queued", "mock_sent"]:
+                total_sent += 1
+
+        return {"success": True, "sms_sent": total_sent}
+
     async def _send_emergency_sms(
         self,
         contact: Dict[str, Any],

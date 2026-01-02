@@ -4,11 +4,10 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.models.patient import Patient
 from app.models.alert import Alert
-from app.services.emergency_service import EmergencyService
+from app.services.emergency_service import get_emergency_service
 from app.api.deps import get_current_patient
 
 router = APIRouter()
-emergency_service = EmergencyService()
 
 @router.post("/trigger")
 async def trigger_emergency(
@@ -17,6 +16,7 @@ async def trigger_emergency(
 ):
     """Trigger emergency alert"""
     try:
+        emergency_service = get_emergency_service()
         result = await emergency_service.trigger_emergency(
             db=db,
             patient_id=current_patient.id
@@ -51,7 +51,9 @@ async def emergency_check_in(
         db.commit()
         
         # Notify emergency contacts
+        emergency_service = get_emergency_service()
         await emergency_service.notify_check_in(
+            db=db,
             patient_id=current_patient.id
         )
         
