@@ -10,7 +10,7 @@ from app.api.deps import get_current_patient
 
 router = APIRouter()
 
-@router.post("", response_model=SeizureInDB)
+@router.post("/", response_model=SeizureInDB)
 async def create_seizure(
     seizure_data: SeizureCreate,
     current_patient=Depends(get_current_patient),
@@ -39,7 +39,7 @@ async def create_seizure(
     
     return seizure
 
-@router.get("", response_model=List[SeizureInDB])
+@router.get("/", response_model=List[SeizureInDB])
 async def get_seizures(
     days: int = 30,
     current_patient=Depends(get_current_patient),

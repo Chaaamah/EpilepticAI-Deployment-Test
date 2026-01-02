@@ -40,8 +40,7 @@ app = FastAPI(
     description="EpilepticAI Backend API - Real-time seizure prediction and monitoring",
     docs_url="/docs",
     redoc_url="/redoc",
-    lifespan=lifespan,
-    redirect_slashes=False
+    lifespan=lifespan
 )
 
 # Add CORS middleware
