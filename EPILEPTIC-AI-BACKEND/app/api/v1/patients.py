@@ -116,7 +116,7 @@ async def add_emergency_contact(
         patient = current_patient
 
     # Get existing emergency contacts
-    existing_contacts = patient.emergency_contacts or []
+    existing_contacts = list(patient.emergency_contacts or [])
 
     # Add new contact
     new_contact = {
@@ -157,7 +157,7 @@ async def remove_emergency_contact(
         patient = current_patient
 
     # Get existing emergency contacts
-    existing_contacts = patient.emergency_contacts or []
+    existing_contacts = list(patient.emergency_contacts or [])
 
     if contact_index < 0 or contact_index >= len(existing_contacts):
         raise HTTPException(
