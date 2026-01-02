@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(curl:*)",
+      "Bash(python -m json.tool:*)",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NjczNDY4MTEsInN1YiI6ImtlbGx5QGdtYWlsLmNvbSIsInVzZXJfdHlwZSI6InBhdGllbnQiLCJpYXQiOjE3NjczNDUwMTF9.-JwgE8gwmrr2ENnw1eqLUcSUFGu4ON9-AXKtOyHeHCU\")"
     ]
   }
 }

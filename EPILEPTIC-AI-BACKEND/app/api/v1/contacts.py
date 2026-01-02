@@ -14,7 +14,7 @@ from app.core.database import get_db
 from app.api.deps import get_current_patient, get_current_patient_user
 from app.models.patient import Patient
 from app.models.user import User
-from app.schemas.patient import EmergencyContact
+from app.schemas.patient import EmergencyContact, PatientInDB
 
 router = APIRouter()
 
@@ -68,14 +68,14 @@ async def get_emergency_contacts(
     return contacts
 
 
-@router.post("/", response_model=Dict[str, Any])
+@router.post("/", response_model=PatientInDB)
 async def add_emergency_contact(
     contact: AddContactRequest,
     current_patient = Depends(get_current_patient_user),
     db: Session = Depends(get_db)
 ):
     """
-    Ajoute un nouveau contact d'urgence
+    Ajoute un nouveau contact d'urgence et retourne l'objet Patient complet
     """
     # Récupérer le patient
     if isinstance(current_patient, User):
@@ -122,11 +122,10 @@ async def add_emergency_contact(
     db.commit()
     db.refresh(patient)
 
-    return {
-        "message": "Emergency contact added successfully",
-        "contact": new_contact,
-        "total_contacts": len(contacts)
-    }
+    print(f"✅ Contact {contact.name} added successfully to patient {patient.email}")
+    print(f"   Total contacts: {len(patient.emergency_contacts)}")
+
+    return patient
 
 
 @router.put("/{phone}", response_model=Dict[str, Any])
@@ -192,15 +191,20 @@ async def update_emergency_contact(
     }
 
 
-@router.delete("/{phone}", response_model=Dict[str, Any])
+@router.delete("/{phone}", response_model=PatientInDB)
 async def delete_emergency_contact(
     phone: str,
     current_patient = Depends(get_current_patient_user),
     db: Session = Depends(get_db)
 ):
     """
-    Supprime un contact d'urgence
+    Supprime un contact d'urgence et retourne l'objet Patient complet
     """
+    import re
+
+    # Normaliser le numéro de téléphone reçu (garder seulement chiffres et +)
+    normalized_phone = re.sub(r'[^0-9+]', '', phone)
+
     # Récupérer le patient
     if isinstance(current_patient, User):
         patient_record = db.query(Patient).filter(Patient.email == current_patient.email).first()
@@ -213,10 +217,28 @@ async def delete_emergency_contact(
     # Récupérer les contacts
     contacts = patient.emergency_contacts or []
 
-    # Filtrer pour enlever le contact
-    updated_contacts = [c for c in contacts if c.get("phone") != phone]
+    print(f"🗑️ Attempting to delete contact with phone: {phone}")
+    print(f"   Normalized to: {normalized_phone}")
+    print(f"   Current contacts: {[c.get('phone') for c in contacts]}")
 
-    if len(updated_contacts) == len(contacts):
+    # Filtrer pour enlever le contact - comparer les numéros normalisés
+    updated_contacts = []
+    found = False
+
+    for c in contacts:
+        contact_phone = c.get("phone", "")
+        normalized_contact_phone = re.sub(r'[^0-9+]', '', contact_phone)
+
+        if normalized_contact_phone == normalized_phone:
+            found = True
+            print(f"   ✓ Found matching contact: {c.get('name')} ({contact_phone})")
+        else:
+            updated_contacts.append(c)
+
+    if not found:
+        print(f"❌ Contact with phone {phone} not found")
+        print(f"   Searched for normalized: {normalized_phone}")
+        print(f"   Available normalized: {[re.sub(r'[^0-9+]', '', c.get('phone', '')) for c in contacts]}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Emergency contact with phone {phone} not found"
@@ -226,11 +248,12 @@ async def delete_emergency_contact(
     patient.emergency_contacts = updated_contacts
     flag_modified(patient, "emergency_contacts")
     db.commit()
+    db.refresh(patient)
 
-    return {
-        "message": "Emergency contact deleted successfully",
-        "remaining_contacts": len(updated_contacts)
-    }
+    print(f"✅ Contact deleted successfully!")
+    print(f"   Remaining contacts: {len(patient.emergency_contacts)}")
+
+    return patient
 
 
 @router.post("/permissions", response_model=Dict[str, Any])
