@@ -47,6 +47,7 @@ async def get_medications(
     
     return medications
 
+
 @router.get("/{medication_id}", response_model=MedicationInDB)
 async def get_medication(
     medication_id: int,
