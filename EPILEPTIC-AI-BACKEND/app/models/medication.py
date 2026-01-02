@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, Text, ForeignKey
+from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, Text, ForeignKey, JSON
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -18,7 +18,7 @@ class Medication(Base):
     
     # Timing
     times_per_day = Column(Integer, nullable=True)
-    specific_times = Column(Text, nullable=True)
+    specific_times = Column(JSON, nullable=True)
     
     # Status
     is_active = Column(Boolean, default=True)
@@ -41,7 +41,7 @@ class Medication(Base):
     
     # Reminders
     reminder_enabled = Column(Boolean, default=True)
-    reminder_times = Column(Text, nullable=True)
+    reminder_times = Column(JSON, nullable=True)
     
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())

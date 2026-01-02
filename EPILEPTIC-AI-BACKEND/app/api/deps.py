@@ -9,14 +9,22 @@ from app.models.doctor import Doctor
 from app.models.user import User, UserRole
 
 def get_current_patient(
-    current_user = Depends(get_current_user)
+    current_user = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ) -> Patient:
-    if not isinstance(current_user, Patient):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not a patient account"
-        )
-    return current_user
+    if isinstance(current_user, Patient):
+        return current_user
+        
+    if isinstance(current_user, User) and current_user.role == UserRole.PATIENT:
+        # Fetch associated Patient record
+        patient = db.query(Patient).filter(Patient.email == current_user.email).first()
+        if patient:
+            return patient
+            
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Not a patient account or patient profile missing"
+    )
 
 def get_current_doctor(
     current_user = Depends(get_current_user)

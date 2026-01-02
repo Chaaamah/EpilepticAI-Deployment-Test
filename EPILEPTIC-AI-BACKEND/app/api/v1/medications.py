@@ -20,9 +20,7 @@ async def create_medication(
     """Create a medication record"""
     medication = Medication(
         patient_id=current_patient.id,
-        specific_times=json.dumps(medication_data.specific_times) if medication_data.specific_times else None,
-        reminder_times=json.dumps(medication_data.reminder_times) if medication_data.reminder_times else None,
-        **medication_data.dict(exclude={"specific_times", "reminder_times"})
+        **medication_data.dict()
     )
     
     db.add(medication)
