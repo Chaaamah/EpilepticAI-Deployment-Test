@@ -282,7 +282,23 @@ async def refresh_access_token(
         )
 
     # Get user from database
+    # Priority 1: User table (New unified system)
     user = db.query(User).filter(User.email == email).first()
+    user_type = None
+    
+    if user:
+        user_type = user.role.value
+    else:
+        # Priority 2: Legacy Patient table
+        user = db.query(Patient).filter(Patient.email == email).first()
+        if user:
+            user_type = "patient"
+        else:
+            # Priority 3: Legacy Doctor table
+            user = db.query(Doctor).filter(Doctor.email == email).first()
+            if user:
+                user_type = "doctor"
+
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -290,7 +306,7 @@ async def refresh_access_token(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    if not user.is_active:
+    if not getattr(user, "is_active", True):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Inactive account"
@@ -298,20 +314,20 @@ async def refresh_access_token(
 
     # Create new access token
     access_token = create_access_token(
-        subject=user.email,
-        user_type=user.role.value
+        subject=email,  # Use email string directly
+        user_type=user_type
     )
 
-    # Optionally create new refresh token (for rotation)
+    # Create new refresh token (for rotation)
     new_refresh_token = create_refresh_token(
-        subject=user.email
+        subject=email
     )
 
     return {
         "access_token": access_token,
         "refresh_token": new_refresh_token,
         "token_type": "bearer",
-        "user_type": user.role.value
+        "user_type": user_type
     }
 
 

@@ -106,32 +106,36 @@ def get_current_user(
         raise credentials_exception
     
     try:
+        print(f"🔐 Validating token: {token[:10]}...")
         payload = jwt.decode(
             token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
         )
         
         email: str = payload.get("sub")
-        user_type: str = payload.get("user_type")
+        user_type: str = str(payload.get("user_type", "")).lower()
         
-        if email is None or user_type is None:
+        print(f"👤 Token payload: sub={email}, user_type={user_type}")
+        
+        if not email or not user_type:
+            print("❌ Missing claims in token")
             raise credentials_exception
         
-        # First check the User table (for admin and new users)
+        # Priority 1: Check User table (Unified system)
         user = db.query(User).filter(User.email == email).first()
 
-        # Fallback to legacy tables for backward compatibility
+        # Priority 2: Check legacy tables if not found in User table
         if not user:
             if user_type == "patient":
                 user = db.query(Patient).filter(Patient.email == email).first()
             elif user_type == "doctor":
                 user = db.query(Doctor).filter(Doctor.email == email).first()
-            else:
-                raise credentials_exception
         
         if user is None:
             raise credentials_exception
         
-        if not getattr(user, 'is_active', True):
+        # Check if user is active (supports both User and legacy models)
+        is_active = getattr(user, 'is_active', True)
+        if not is_active:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Inactive user"
