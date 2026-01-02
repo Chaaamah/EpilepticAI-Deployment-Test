@@ -21,6 +21,21 @@ def get_current_patient(
         if patient:
             return patient
             
+        # If User exists with PATIENT role but no Patient record (lazy sync)
+        print(f"⚠️ User {current_user.email} is a patient but has no Patient record. Creating mock...")
+        return Patient(
+            id=current_user.id,
+            email=current_user.email,
+            full_name=current_user.full_name,
+            phone=current_user.phone,
+            is_active=current_user.is_active,
+            is_verified=current_user.is_verified,
+            emergency_contacts=[],
+            trigger_factors=[],
+            health_status="new",
+            hashed_password=current_user.hashed_password
+        )
+            
     raise HTTPException(
         status_code=status.HTTP_403_FORBIDDEN,
         detail="Not a patient account or patient profile missing"

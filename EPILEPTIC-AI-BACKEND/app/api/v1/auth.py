@@ -226,6 +226,48 @@ async def login_user(
     Uses the User table for authentication.
     """
     user = db.query(User).filter(User.email == form_data.email).first()
+    user_role = None
+
+    if not user:
+        # Check legacy tables for unified login support
+        print(f"🔍 User {form_data.email} not found in 'users' table. checking legacy tables...")
+        
+        # Check Patient table
+        patient = db.query(Patient).filter(Patient.email == form_data.email).first()
+        if patient and verify_password(form_data.password, patient.hashed_password):
+            print(f"✨ Found legacy patient. Auto-syncing to 'users' table...")
+            user = User(
+                email=patient.email,
+                full_name=patient.full_name,
+                phone=patient.phone,
+                role=UserRole.PATIENT,
+                hashed_password=patient.hashed_password,
+                is_active=patient.is_active,
+                is_verified=True
+            )
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+            user_role = UserRole.PATIENT
+        
+        # If not patient, check Doctor table
+        if not user:
+            doctor = db.query(Doctor).filter(Doctor.email == form_data.email).first()
+            if doctor and verify_password(form_data.password, doctor.hashed_password):
+                print(f"✨ Found legacy doctor. Auto-syncing to 'users' table...")
+                user = User(
+                    email=doctor.email,
+                    full_name=doctor.full_name,
+                    phone=doctor.phone,
+                    role=UserRole.DOCTOR,
+                    hashed_password=doctor.hashed_password,
+                    is_active=doctor.is_active,
+                    is_verified=True
+                )
+                db.add(user)
+                db.commit()
+                db.refresh(user)
+                user_role = UserRole.DOCTOR
 
     if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
@@ -240,13 +282,16 @@ async def login_user(
             detail="Inactive account"
         )
 
+    if not user_role:
+        user_role = user.role
+
     # Update last login
     user.last_login = datetime.utcnow()
     db.commit()
 
     access_token = create_access_token(
         subject=user.email,
-        user_type=user.role.value
+        user_type=user_role.value if hasattr(user_role, 'value') else user_role
     )
     
     refresh_token = create_refresh_token(
@@ -257,7 +302,7 @@ async def login_user(
         "access_token": access_token,
         "refresh_token": refresh_token,
         "token_type": "bearer",
-        "user_type": user.role.value
+        "user_type": user_role.value if hasattr(user_role, 'value') else user_role
     }
 
 

@@ -10,7 +10,7 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.models.patient import Patient
 from app.models.doctor import Doctor
-from app.models.user import User
+from app.models.user import User, UserRole
 
 # OAuth2 password bearer
 oauth2_scheme = OAuth2PasswordBearer(
@@ -125,13 +125,42 @@ def get_current_user(
 
         # Priority 2: Check legacy tables if not found in User table
         if not user:
+            print(f"🔍 User not found in 'users' table. Checking legacy tables for {user_type}...")
+            legacy_user = None
+            role = None
+            
             if user_type == "patient":
-                user = db.query(Patient).filter(Patient.email == email).first()
+                legacy_user = db.query(Patient).filter(Patient.email == email).first()
+                role = UserRole.PATIENT
             elif user_type == "doctor":
-                user = db.query(Doctor).filter(Doctor.email == email).first()
-        
-        if user is None:
-            raise credentials_exception
+                legacy_user = db.query(Doctor).filter(Doctor.email == email).first()
+                role = UserRole.DOCTOR
+            
+            if legacy_user:
+                print(f"✨ Found legacy {user_type}. Auto-syncing to 'users' table...")
+                # Auto-create User record for legacy patient/doctor
+                user = User(
+                    email=legacy_user.email,
+                    full_name=legacy_user.full_name,
+                    phone=getattr(legacy_user, 'phone', None),
+                    role=role,
+                    hashed_password=legacy_user.hashed_password,
+                    is_active=getattr(legacy_user, 'is_active', True),
+                    is_verified=True  # Assume legacy users are verified or verify upon sync
+                )
+                db.add(user)
+                try:
+                    db.commit()
+                    db.refresh(user)
+                    print(f"✅ Auto-sync successful for {email}")
+                except Exception as e:
+                    db.rollback()
+                    print(f"⚠️ Auto-sync failed (likely race condition): {str(e)}")
+                    # Fallback to the legacy user object for this request
+                    user = legacy_user
+            else:
+                print(f"❌ User {email} not found in any table")
+                raise credentials_exception
         
         # Check if user is active (supports both User and legacy models)
         is_active = getattr(user, 'is_active', True)
