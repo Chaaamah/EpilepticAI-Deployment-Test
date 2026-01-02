@@ -24,39 +24,27 @@ class EmergencyContactFromPhone(BaseModel):
     priority: int = 1
     notification_method: str = "sms"
 
-@router.get("/me", response_model=UserResponse)
+@router.get("/me", response_model=PatientInDB)
 async def get_me(
     current_patient = Depends(get_current_patient_user),
     db: Session = Depends(get_db)
 ):
     """Get current patient profile"""
-    # Always return User object for consistency with mobile app
+    # Create valid PatientInDB response
+    
+    # If we have a User object, we must find the associated Patient record
     if isinstance(current_patient, User):
-        return current_patient
+        patient = db.query(Patient).filter(Patient.email == current_patient.email).first()
+        if not patient:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Patient profile not found"
+            )
+        return patient
 
-    # If coming from legacy Patient table, convert to User
+    # If we already have a Patient object, return it
     if isinstance(current_patient, Patient):
-        # Find corresponding User record
-        user = db.query(User).filter(User.email == current_patient.email).first()
-        if not user:
-            # If no User record exists, create a temporary UserResponse-like dict
-            # This handles legacy patients that don't have a User record yet
-            from app.models.user import UserRole
-            return {
-                "id": current_patient.id,
-                "email": current_patient.email,
-                "full_name": current_patient.full_name,
-                "phone": current_patient.phone,
-                "role": UserRole.PATIENT.value,  # Default to patient role
-                "is_active": current_patient.is_active,
-                "is_verified": current_patient.is_verified if hasattr(current_patient, 'is_verified') else True,
-                "is_superuser": False,
-                "profile_picture": None,
-                "created_at": current_patient.created_at,
-                "updated_at": current_patient.updated_at,
-                "last_login": None
-            }
-        return user
+        return current_patient
 
     raise HTTPException(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
