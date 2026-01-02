@@ -6,7 +6,7 @@ from pydantic import BaseModel, EmailStr
 
 from app.core.config import settings
 from app.core.database import get_db
-from app.core.security import create_access_token, verify_password, get_password_hash, get_current_user
+from app.core.security import create_access_token, create_refresh_token, verify_password, get_password_hash, get_current_user
 from app.models.patient import Patient
 from app.models.doctor import Doctor
 from app.models.user import User, UserRole
@@ -166,8 +166,13 @@ async def login_patient(
         user_type="patient"
     )
     
+    refresh_token = create_refresh_token(
+        subject=patient.email
+    )
+    
     return {
         "access_token": access_token,
+        "refresh_token": refresh_token,
         "token_type": "bearer",
         "user_type": "patient"
     }
@@ -200,8 +205,13 @@ async def login_doctor(
         user_type="doctor"
     )
     
+    refresh_token = create_refresh_token(
+        subject=doctor.email
+    )
+    
     return {
         "access_token": access_token,
+        "refresh_token": refresh_token,
         "token_type": "bearer",
         "user_type": "doctor"
     }
@@ -238,9 +248,14 @@ async def login_user(
         subject=user.email,
         user_type=user.role.value
     )
+    
+    refresh_token = create_refresh_token(
+        subject=user.email
+    )
 
     return {
         "access_token": access_token,
+        "refresh_token": refresh_token,
         "token_type": "bearer",
         "user_type": user.role.value
     }
@@ -288,10 +303,8 @@ async def refresh_access_token(
     )
 
     # Optionally create new refresh token (for rotation)
-    new_refresh_token = create_access_token(
-        subject=user.email,
-        user_type=user.role.value,
-        expires_delta=timedelta(days=30)
+    new_refresh_token = create_refresh_token(
+        subject=user.email
     )
 
     return {
