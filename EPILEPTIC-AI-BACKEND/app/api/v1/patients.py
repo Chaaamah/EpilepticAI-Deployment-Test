@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.attributes import flag_modified
 from typing import List
 from pydantic import BaseModel
 
@@ -130,6 +131,7 @@ async def add_emergency_contact(
 
     existing_contacts.append(new_contact)
     patient.emergency_contacts = existing_contacts
+    flag_modified(patient, "emergency_contacts")
 
     db.commit()
     db.refresh(patient)
@@ -168,6 +170,7 @@ async def remove_emergency_contact(
     # Remove contact
     existing_contacts.pop(contact_index)
     patient.emergency_contacts = existing_contacts
+    flag_modified(patient, "emergency_contacts")
 
     db.commit()
     db.refresh(patient)
