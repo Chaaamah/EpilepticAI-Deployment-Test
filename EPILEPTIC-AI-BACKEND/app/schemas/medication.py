@@ -11,11 +11,11 @@ class MedicationBase(BaseModel):
     specific_times: Optional[List[str]] = None
     is_active: bool = True
     status: str = "active"  # active, archived, discontinued
-    start_date: Optional[date] = None
-    end_date: Optional[date] = None
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
     notes: Optional[str] = None
     prescribed_by: Optional[str] = None
-    prescription_date: Optional[date] = None
+    prescription_date: Optional[datetime] = None
     instructions: Optional[str] = None
     side_effects: Optional[str] = None
     reminder_enabled: bool = True
@@ -30,7 +30,7 @@ class MedicationUpdate(BaseModel):
     frequency: Optional[str] = None
     is_active: Optional[bool] = None
     status: Optional[str] = None
-    end_date: Optional[date] = None
+    end_date: Optional[datetime] = None
     notes: Optional[str] = None
     instructions: Optional[str] = None
     side_effects: Optional[str] = None
