@@ -12,7 +12,7 @@ from app.models.user import User
 
 router = APIRouter()
 
-@router.post("/", response_model=BiometricInDB)
+@router.post("", response_model=BiometricInDB)
 async def create_biometric(
     biometric_data: BiometricCreate,
     current_patient=Depends(get_current_patient_user),
@@ -73,7 +73,7 @@ async def create_biometric_batch(
     
     return biometrics
 
-@router.get("/", response_model=List[BiometricInDB])
+@router.get("", response_model=List[BiometricInDB])
 async def get_biometrics(
     hours: int = 24,
     current_patient=Depends(get_current_patient_user),
