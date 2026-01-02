@@ -132,9 +132,12 @@ async def add_emergency_contact(
     existing_contacts.append(new_contact)
     patient.emergency_contacts = existing_contacts
     flag_modified(patient, "emergency_contacts")
-
+    
+    print(f"DEBUG: Adding contact. New list count: {len(existing_contacts)}")
+    
     db.commit()
     db.refresh(patient)
+    print(f"DEBUG: After commit/refresh. Count in DB: {len(patient.emergency_contacts)}")
 
     return patient
 
@@ -168,12 +171,15 @@ async def remove_emergency_contact(
         )
 
     # Remove contact
-    existing_contacts.pop(contact_index)
+    removed = existing_contacts.pop(contact_index)
+    print(f"DEBUG: Removed contact {removed['name']}. Remaining: {len(existing_contacts)}")
+    
     patient.emergency_contacts = existing_contacts
     flag_modified(patient, "emergency_contacts")
 
     db.commit()
     db.refresh(patient)
+    print(f"DEBUG: After commit/refresh (Delete). Count in DB: {len(patient.emergency_contacts)}")
 
     return patient
 
