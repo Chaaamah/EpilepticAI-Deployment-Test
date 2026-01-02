@@ -5,7 +5,7 @@ from app.api.v1 import (
     alerts, predictions, emergency, users, seizure_detection, contacts, clinical_notes
 )
 
-api_router = APIRouter()
+api_router = APIRouter(redirect_slashes=False)
 
 api_router.include_router(auth.router, prefix="/auth", tags=["authentication"])
 api_router.include_router(users.router, prefix="/users", tags=["users"])
