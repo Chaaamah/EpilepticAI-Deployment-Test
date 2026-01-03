@@ -390,7 +390,7 @@ class EmergencyService:
         risk_score: float,
         alert_type: str
     ) -> str:
-        \"\"\"Generates English emergency message\"\"\"
+        """Generates English emergency message"""
 
         alert_messages = {
             "SEIZURE_PREDICTION": "SEIZURE RISK DETECTED",
@@ -401,7 +401,7 @@ class EmergencyService:
 
         alert_description = alert_messages.get(alert_type, "Medical Alert")
 
-        message = f\"\"\"🚨 EPILEPSY EMERGENCY
+        message = f"""🚨 EPILEPSY EMERGENCY
 
 Patient: {patient.full_name}
 Alert: {alert_description}
@@ -412,7 +412,7 @@ IMMEDIATE ACTION REQUIRED:
 - Go to their location if no response
 - Call Emergency Services (911/112) if necessary
 
-EpilepticAI\"\"\"
+EpilepticAI"""
 
         return message
 
@@ -463,7 +463,7 @@ EpilepticAI\"\"\"
                 digits = '0' + digits[2:]  # +33612... → 0612...
             phone_spoken = ' '.join(digits)
 
-        twiml = f\"\"\"<?xml version="1.0" encoding="UTF-8"?>
+        twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Say language="en-US" voice="alice">
         Epilepsy Emergency. EpilepticAI.
@@ -478,7 +478,7 @@ EpilepticAI\"\"\"
     <Say language="en-US">
         No confirmation received. Calling next contact.
     </Say>
-</Response>\"\"\"
+</Response>"""
 
         return twiml
 
