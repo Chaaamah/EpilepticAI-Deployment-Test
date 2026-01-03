@@ -29,7 +29,7 @@ const Patients = () => {
   // Filtrer les patients pour n'afficher que ceux du docteur connecté
   useEffect(() => {
     if (user && patients) {
-      const filtered = patients.filter(patient => 
+      const filtered = patients.filter(patient =>
         patient.owner === user.email
       );
       setDoctorPatients(filtered);
@@ -39,14 +39,14 @@ const Patients = () => {
   const filteredPatients = doctorPatients
     .filter(patient => {
       const query = searchQuery.toLowerCase();
-      const matchesSearch = 
+      const matchesSearch =
         patient.name?.toLowerCase().includes(query) ||
         patient.description?.toLowerCase().includes(query) ||
         patient.healthStatus?.toLowerCase().includes(query);
-      
-      const matchesStatus = statusFilter === "all" || 
+
+      const matchesStatus = statusFilter === "all" ||
         patient.healthStatus?.toLowerCase() === statusFilter.toLowerCase();
-      
+
       return matchesSearch && matchesStatus;
     })
     .sort((a, b) => {
@@ -122,7 +122,7 @@ const Patients = () => {
               className="pl-10"
             />
           </div>
-          <select 
+          <select
             className="bg-card border border-input rounded-md px-3 py-2 text-sm"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
@@ -136,7 +136,7 @@ const Patients = () => {
           </select>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <span>{t("sort_by", undefined, "Trier par")}</span>
-            <select 
+            <select
               className="bg-card border border-input rounded-md px-3 py-1.5"
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
@@ -196,7 +196,7 @@ const Patients = () => {
                     <TableCell>{patient.heartRate} bpm</TableCell>
                     <TableCell>
                       <Badge variant={getHealthStatusColor(patient.healthStatus)}>
-                        {patient.healthStatus}
+                        {t("status_" + patient.healthStatus?.toLowerCase(), undefined, patient.healthStatus)}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -211,10 +211,10 @@ const Patients = () => {
                             <Eye className="h-4 w-4" />
                           </Link>
                         </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8" 
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
                           asChild
                         >
                           <Link to={`/patients/${patient.id}/edit`}>
@@ -238,7 +238,7 @@ const Patients = () => {
                 <TableRow>
                   <TableCell colSpan={8} className="text-center py-8">
                     <div className="text-muted-foreground">
-                      {doctorPatients.length === 0 
+                      {doctorPatients.length === 0
                         ? t("no_patients_assigned", undefined, "Aucun patient assigné à votre compte. Ajoutez votre premier patient !")
                         : t("no_patients_found", undefined, "Aucun patient trouvé avec les critères de recherche")
                       }
@@ -252,10 +252,10 @@ const Patients = () => {
 
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
-            Affichage de {filteredPatients.length} patient(s) sur {doctorPatients.length} au total
+            {t("showing_entries", { count: filteredPatients.length, total: doctorPatients.length }, `Affichage de ${filteredPatients.length} patient(s) sur ${doctorPatients.length} au total`)}
           </p>
           <p className="text-xs text-muted-foreground">
-            Docteur: {user.name || user.email}
+            {t("doctor_label", undefined, "Docteur")}: {user.name || user.email}
           </p>
         </div>
       </div>

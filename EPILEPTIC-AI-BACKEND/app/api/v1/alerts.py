@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from app.core.database import get_db
 from app.models.alert import Alert
 from app.schemas.alert import AlertUpdate, AlertInDB
-from app.api.deps import get_current_patient
+from app.api.deps import get_current_patient, get_current_admin_or_doctor
 
 router = APIRouter()
 
@@ -103,3 +103,51 @@ async def resolve_alert(
     db.refresh(alert)
     
     return alert
+
+@router.get("/managed", response_model=List[AlertInDB])
+async def get_managed_alerts(
+    active_only: bool = True,
+    days: int = 7,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_admin_or_doctor) # Import this if missing
+):
+    """
+    Get alerts for patients managed by the current doctor.
+    """
+    from app.models.patient import Patient
+    from app.models.doctor import Doctor
+    from app.models.user import UserRole
+    
+    start_date = datetime.utcnow() - timedelta(days=days)
+    
+    # Identify doctor email
+    doctor_email = None
+    if isinstance(current_user, Doctor):
+        doctor_email = current_user.email
+    elif hasattr(current_user, 'email'):
+        doctor_email = current_user.email
+        
+    # If admin, seeing all alerts? Or just return empty for safety if not specified.
+    if hasattr(current_user, 'role') and current_user.role == UserRole.ADMIN:
+        # Admin gets everything
+        query = db.query(Alert).filter(Alert.triggered_at >= start_date)
+    else:
+        # Doctor: Find managed patients first
+        managed_patient_ids = db.query(Patient.id).filter(
+            Patient.treating_neurologist == doctor_email
+        ).all()
+        # Flatten tuple list [(1,), (2,)] -> [1, 2]
+        patient_ids = [p[0] for p in managed_patient_ids]
+        
+        query = db.query(Alert).filter(
+            Alert.patient_id.in_(patient_ids),
+            Alert.triggered_at >= start_date
+        )
+    
+    if active_only:
+        query = query.filter(Alert.is_active == True)
+        
+    alerts = query.order_by(Alert.triggered_at.desc()).limit(limit).all()
+    
+    return alerts

@@ -174,7 +174,7 @@ export function AppSidebar() {
                         className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-accent/50 transition-colors text-left"
                       >
                         <User className="w-4 h-4" />
-                        <span className="font-medium">Mon profil</span>
+                        <span className="font-medium">{t("menu_profile")}</span>
                       </button>
                       <div className="h-px bg-border mx-2 my-1" />
                       <button
@@ -182,7 +182,7 @@ export function AppSidebar() {
                         className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-destructive/20 text-destructive transition-colors text-left"
                       >
                         <LogOut className="w-4 h-4" />
-                        <span className="font-medium">Se déconnecter</span>
+                        <span className="font-medium">{t("logout")}</span>
                       </button>
                     </div>
                   </div>
@@ -205,8 +205,8 @@ export function AppSidebar() {
                 {/* Menu déroulant - sidebar FERMÉ */}
                 {isUserMenuOpen && (
                   <div className="fixed inset-0 z-40" style={{ pointerEvents: 'none' }}>
-                    <div 
-                      className="absolute left-16 top-auto bottom-4 bg-card border border-border rounded-lg shadow-xl z-50 min-w-[200px] overflow-hidden" 
+                    <div
+                      className="absolute left-16 top-auto bottom-4 bg-card border border-border rounded-lg shadow-xl z-50 min-w-[200px] overflow-hidden"
                       style={{ pointerEvents: 'auto' }}
                     >
                       <div className="py-2">
@@ -215,24 +215,24 @@ export function AppSidebar() {
                           <p className="text-sm font-semibold text-foreground">{user?.name || "Docteur"}</p>
                           <p className="text-xs text-muted-foreground mt-0.5">{user?.role || "Doctor"}</p>
                         </div>
-                        
+
                         {/* Options */}
                         <button
                           onClick={handleGoToProfile}
                           className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-accent/50 transition-colors text-left"
                         >
                           <User className="w-4 h-4 flex-shrink-0" />
-                          <span className="font-medium">Mon profil</span>
+                          <span className="font-medium">{t("menu_profile")}</span>
                         </button>
-                        
+
                         <div className="h-px bg-border mx-2 my-1" />
-                        
+
                         <button
                           onClick={handleLogout}
                           className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-destructive/20 text-destructive transition-colors text-left"
                         >
                           <LogOut className="w-4 h-4 flex-shrink-0" />
-                          <span className="font-medium">Se déconnecter</span>
+                          <span className="font-medium">{t("logout")}</span>
                         </button>
                       </div>
                     </div>

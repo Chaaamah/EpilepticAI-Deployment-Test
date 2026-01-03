@@ -12,6 +12,7 @@ const translations: Record<Lang, Record<string, string>> = {
     menu_profile: "Profil",
     menu_alerts: "Alertes",
     menu_settings: "Paramètres",
+    account_pages: "Pages de compte",
     logout: "Se déconnecter",
     toggle_sidebar: "Basculer la barre latérale",
 
@@ -61,6 +62,11 @@ const translations: Record<Lang, Record<string, string>> = {
     critical_label: "Critique",
     warnings_label: "Avertissements",
     info_label: "Info",
+    risk_critical: "Critique",
+    risk_high: "Élevé",
+    risk_medium: "Moyen",
+    risk_stable: "Stable",
+    risk_low: "Faible",
 
     // Alerts
     alerts_title: "Alertes",
@@ -213,7 +219,7 @@ const translations: Record<Lang, Record<string, string>> = {
     appearance: "Apparence",
     risk_score_settings: "Paramètres des scores de risque",
     data_privacy: "Confidentialité des données",
-    
+
     // Notification settings
     critical_alerts_notifications: "Alertes de crises critiques",
     critical_alerts_notifications_desc: "Recevoir des notifications pour les alertes de patients à haut risque",
@@ -221,7 +227,7 @@ const translations: Record<Lang, Record<string, string>> = {
     medication_reminders_desc: "Recevoir des rappels pour les horaires de médicaments des patients",
     appointment_notifications: "Notifications de rendez-vous",
     appointment_notifications_desc: "Alertes pour les rendez-vous à venir et manqués",
-    
+
     // Risk score settings
     high_risk_threshold: "Seuil de risque élevé",
     high_risk_threshold_desc: "Les patients au-dessus de ce score seront marqués comme à haut risque",
@@ -229,7 +235,7 @@ const translations: Record<Lang, Record<string, string>> = {
     realtime: "Temps réel",
     hourly: "Toutes les heures",
     daily: "Résumé quotidien",
-    
+
     // Privacy settings
     share_analytics: "Partager les données analytiques",
     share_analytics_desc: "Aidez à améliorer nos modèles IA en partageant des données anonymisées",
@@ -259,18 +265,21 @@ const translations: Record<Lang, Record<string, string>> = {
     alert_type_warning: "Avertissement",
     alert_type_info: "Information",
     alert_type_success: "Succès",
+    alert_type_medication_intake: "Prise de médicament",
+    medication_taken_title: "Médicament pris",
+    medication_taken_desc: "Le patient {name} a pris son médicament {medication}.",
     patient: "Patient",
-    
+
     // Placeholder texts
     enter_email_address: "Entrez votre adresse e-mail",
     enter_name: "Entrez votre nom",
     enter_password: "Entrez votre mot de passe",
-    
+
     // Confirmation messages
     delete_patient_confirmation: "Êtes-vous sûr de vouloir supprimer le patient \"{name}\" ? Cette action est irréversible.",
     confirm_delete: "Confirmer la suppression",
     loading: "Chargement...",
-    
+
     // Validation errors
     name_required: "Nom requis",
     age_required: "Âge requis",
@@ -280,7 +289,7 @@ const translations: Record<Lang, Record<string, string>> = {
     not_specified: "Non spécifié",
     just_now_text: "À l'instant",
     new_patient_text: "Nouveau patient",
-    
+
     // PatientDetail toasts (French)
     missing_fields: "Champs manquants",
     fill_all_required_fields: "Veuillez remplir tous les champs obligatoires",
@@ -361,6 +370,7 @@ const translations: Record<Lang, Record<string, string>> = {
     menu_profile: "Profile",
     menu_alerts: "Alerts",
     menu_settings: "Settings",
+    account_pages: "Account Pages",
     logout: "Log Out",
     toggle_sidebar: "Toggle Sidebar",
 
@@ -410,6 +420,11 @@ const translations: Record<Lang, Record<string, string>> = {
     critical_label: "Critical",
     warnings_label: "Warnings",
     info_label: "Info",
+    risk_critical: "Critical",
+    risk_high: "High",
+    risk_medium: "Medium",
+    risk_stable: "Stable",
+    risk_low: "Low",
 
     // Alerts
     alerts_title: "Alerts",
@@ -562,7 +577,7 @@ const translations: Record<Lang, Record<string, string>> = {
     appearance: "Appearance",
     risk_score_settings: "Risk Score Settings",
     data_privacy: "Data & Privacy",
-    
+
     // Notification settings
     critical_alerts_notifications: "Critical Seizure Alerts",
     critical_alerts_notifications_desc: "Receive notifications for high-risk patient alerts",
@@ -570,7 +585,7 @@ const translations: Record<Lang, Record<string, string>> = {
     medication_reminders_desc: "Receive reminders for patient medication schedules",
     appointment_notifications: "Appointment Notifications",
     appointment_notifications_desc: "Alerts for upcoming and missed appointments",
-    
+
     // Risk score settings
     high_risk_threshold: "High Risk Threshold",
     high_risk_threshold_desc: "Patients above this score will be marked as high risk",
@@ -578,7 +593,7 @@ const translations: Record<Lang, Record<string, string>> = {
     realtime: "Realtime",
     hourly: "Hourly",
     daily: "Daily summary",
-    
+
     // Privacy settings
     share_analytics: "Share Analytics Data",
     share_analytics_desc: "Help improve our AI models by sharing anonymized data",
@@ -608,18 +623,21 @@ const translations: Record<Lang, Record<string, string>> = {
     alert_type_warning: "Warning",
     alert_type_info: "Info",
     alert_type_success: "Success",
+    alert_type_medication_intake: "Medication Intake",
+    medication_taken_title: "Medication Taken",
+    medication_taken_desc: "Patient {name} has taken medication {medication}.",
     patient: "Patient",
-    
+
     // Placeholder texts
     enter_email_address: "Enter your email address",
     enter_name: "Enter name",
     enter_password: "Enter password",
-    
+
     // Confirmation messages
     delete_patient_confirmation: "Are you sure you want to delete the patient \"{name}\"? This action is irreversible.",
     confirm_delete: "Confirm deletion",
     loading: "Loading...",
-    
+
     // Validation errors
     name_required: "Name is required",
     age_required: "Age is required",
@@ -629,7 +647,7 @@ const translations: Record<Lang, Record<string, string>> = {
     not_specified: "Not specified",
     just_now_text: "Just now",
     new_patient_text: "New patient",
-    
+
     // PatientDetail toasts (English)
     missing_fields: "Missing fields",
     fill_all_required_fields: "Please fill all required fields",
@@ -711,6 +729,7 @@ const translations: Record<Lang, Record<string, string>> = {
     menu_profile: "الملف الشخصي",
     menu_alerts: "التنبيهات",
     menu_settings: "الإعدادات",
+    account_pages: "صفحات الحساب",
     logout: "تسجيل الخروج",
     toggle_sidebar: "تبديل الشريط الجانبي",
 
@@ -774,6 +793,11 @@ const translations: Record<Lang, Record<string, string>> = {
     critical_label: "حرج",
     warnings_label: "تحذيرات",
     info_label: "معلومات",
+    risk_critical: "حرج",
+    risk_high: "مرتفع",
+    risk_medium: "متوسط",
+    risk_stable: "مستقر",
+    risk_low: "منخفض",
 
     // التنبيهات
     alerts_title: "التنبيهات",
@@ -926,7 +950,7 @@ const translations: Record<Lang, Record<string, string>> = {
     appearance: "المظهر",
     risk_score_settings: "إعدادات درجة المخاطرة",
     data_privacy: "البيانات والخصوصية",
-    
+
     // إعدادات الإشعارات
     critical_alerts_notifications: "تنبيهات النوبات الحرجة",
     critical_alerts_notifications_desc: "تلقي إشعارات لتنبيهات المرضى عالية الخطورة",
@@ -934,7 +958,7 @@ const translations: Record<Lang, Record<string, string>> = {
     medication_reminders_desc: "تلقي تذكيرات لجدول أدوية المرضى",
     appointment_notifications: "إشعارات المواعيد",
     appointment_notifications_desc: "تنبيهات للمواعيد القادمة والفائتة",
-    
+
     // إعدادات درجة المخاطرة
     high_risk_threshold: "عتبة الخطورة العالية",
     high_risk_threshold_desc: "المرضى فوق هذا الدرجة سيتم وضع علامة عليهم كخطورة عالية",
@@ -942,7 +966,7 @@ const translations: Record<Lang, Record<string, string>> = {
     realtime: "الوقت الحقيقي",
     hourly: "كل ساعة",
     daily: "ملخص يومي",
-    
+
     // إعدادات الخصوصية
     share_analytics: "مشاركة البيانات التحليلية",
     share_analytics_desc: "ساعد في تحسين نماذج الذكاء الاصطناعي لدينا من خلال مشاركة البيانات المجهولة",
@@ -972,18 +996,21 @@ const translations: Record<Lang, Record<string, string>> = {
     alert_type_warning: "تحذير",
     alert_type_info: "معلومات",
     alert_type_success: "نجاح",
+    alert_type_medication_intake: "تناول الدواء",
+    medication_taken_title: "تم تناول الدواء",
+    medication_taken_desc: "تناول المريض {name} الدواء {medication}.",
     patient: "المريض",
-    
+
     // Placeholder texts
     enter_email_address: "أدخل بريدك الإلكتروني",
     enter_name: "أدخل الاسم",
     enter_password: "أدخل كلمة المرور",
-    
+
     // Confirmation messages
     delete_patient_confirmation: "هل أنت متأكد من رغبتك في حذف المريض \"{name}\"؟ هذا الإجراء غير قابل للعكس.",
     confirm_delete: "تأكيد الحذف",
     loading: "جاري التحميل...",
-    
+
     // Validation errors
     name_required: "الاسم مطلوب",
     age_required: "العمر مطلوب",
@@ -993,7 +1020,7 @@ const translations: Record<Lang, Record<string, string>> = {
     not_specified: "غير محدد",
     just_now_text: "الآن",
     new_patient_text: "مريض جديد",
-    
+
     // PatientDetail toasts (Arabic)
     missing_fields: "حقول مفقودة",
     fill_all_required_fields: "يرجى ملء جميع الحقول المطلوبة",
@@ -1078,18 +1105,18 @@ const I18nContext = createContext<I18nContextType | undefined>(undefined);
 
 export const I18nProvider = ({ children }: { children: ReactNode }) => {
   const { settings } = useSettings();
-  const lang = "en" as Lang;
+  const lang = (settings?.appearance?.language as Lang) || "en";
 
   const t = (key: string, params?: Record<string, string | number>, fallback?: string) => {
     let translation = translations[lang]?.[key] ?? fallback ?? key;
-    
+
     // استبدال المعلمات الديناميكية
     if (params) {
       Object.entries(params).forEach(([param, value]) => {
         translation = translation.replace(`{${param}}`, String(value));
       });
     }
-    
+
     return translation;
   };
 

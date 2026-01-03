@@ -10,9 +10,12 @@ import { useTranslation } from "@/contexts/I18nContext";
 import { usePatients } from "@/contexts/PatientsContext";
 import { useAuth } from "@/contexts/AuthContext";
 
+import { alertService } from "@/services/alertService";
+import { Pill } from "lucide-react";
+
 interface Alert {
   id: number;
-  type: "critical" | "warning" | "info" | "success";
+  type: "critical" | "warning" | "info" | "success" | "medication_intake";
   title: string;
   description: string;
   patient: string;
@@ -33,115 +36,84 @@ const Alerts = () => {
   // Filtrer les patients pour n'afficher que ceux du docteur connecté
   useEffect(() => {
     if (user && patients) {
-      const filtered = patients.filter(patient => 
+      const filtered = patients.filter(patient =>
         patient.owner === user.email
       );
       setDoctorPatients(filtered);
     }
   }, [patients, user]);
 
-  // Générer les alertes basées sur les patients du docteur
+  // Générer les alertes basées sur les patients du docteur ET fetch api
   useEffect(() => {
-    if (doctorPatients.length > 0) {
-      const generatedAlerts: Alert[] = [];
+    const fetchAndGenerateAlerts = async () => {
+      let combinedAlerts: Alert[] = [];
 
-      doctorPatients.forEach(patient => {
-        // Alerte critique pour les patients avec statut "Critical"
-        if (patient.healthStatus?.toLowerCase() === "critical") {
-          generatedAlerts.push({
-            id: patient.id * 10 + 1,
-            type: "critical",
-            title: t("seizure_episode_detected", undefined, "Crise Épileptique Détectée"),
-            description: t("seizure_episode_desc", { name: patient.name }, `Le patient ${patient.name} a un statut critique. Surveillance intensive requise.`),
-            patient: patient.name,
-            patientId: patient.id,
-            time: t("recently"),
-            read: false,
-          });
-        }
+      // 1. Alertes générées localement (simulées)
+      if (doctorPatients.length > 0) {
+        doctorPatients.forEach(patient => {
+          // Alerte critique
+          if (patient.healthStatus?.toLowerCase() === "critical") {
+            combinedAlerts.push({
+              id: patient.id * 1000 + 1,
+              type: "critical",
+              title: t("seizure_episode_detected", undefined, "Crise Épileptique Détectée"),
+              description: t("seizure_episode_desc", { name: patient.name }, `Le patient ${patient.name} a un statut critique.`),
+              patient: patient.name,
+              patientId: patient.id,
+              time: t("recently"),
+              read: false,
+            });
+          }
+          // Alerte warning
+          if (patient.riskScore > 80) {
+            combinedAlerts.push({
+              id: patient.id * 1000 + 2,
+              type: "warning",
+              title: t("high_risk_score_alert_title"),
+              description: t("high_risk_score_alert_desc", { name: patient.name, score: patient.riskScore }),
+              patient: patient.name,
+              patientId: patient.id,
+              time: t("today"),
+              read: false,
+            });
+          }
+        });
+      }
 
-        // Alerte warning pour les patients avec risque élevé
-        if (patient.riskScore > 80) {
-          generatedAlerts.push({
-            id: patient.id * 10 + 2,
-            type: "warning",
-            title: t("high_risk_score_alert_title", undefined, "Score de Risque Élevé"),
-            description: t("high_risk_score_alert_desc", { name: patient.name, score: patient.riskScore }, `Le score de risque de ${patient.name} est de ${patient.riskScore}. Révision recommandée.`),
-            patient: patient.name,
-            patientId: patient.id,
-            time: t("today"),
-            read: false,
-          });
-        }
+      // 2. Alertes provenant du Backend (API)
+      try {
+        const backendAlerts = await alertService.getManagedAlerts({ limit: 50 });
+        const mappedBackendAlerts = backendAlerts.map((alert: any) => {
+          // Trouver le nom du patient si possible (via doctorPatients ou API alert data)
+          const patientName = doctorPatients.find(p => p.id === alert.patient_id)?.name || "Patient";
 
-        // Alerte pour rythme cardiaque anormal
-        if (patient.heartRate > 100 || patient.heartRate < 60) {
-          generatedAlerts.push({
-            id: patient.id * 10 + 3,
-            type: "warning",
-            title: t("abnormal_heart_rate", undefined, "Rythme Cardiaque Anormal"),
-            description: t("abnormal_heart_rate_desc", { name: patient.name }, `Le rythme cardiaque de ${patient.name} est à ${patient.heartRate} bpm. Surveillance nécessaire.`),
-            patient: patient.name,
-            patientId: patient.id,
-            time: t("today"),
-            read: true,
-          });
-        }
+          return {
+            id: alert.id,
+            type: alert.alert_type as Alert["type"], // "medication_intake" maps directly if interfaced
+            title: t(alert.title) === alert.title && alert.title === "Medication Taken" ? t("medication_taken_title") : alert.title,
+            description: alert.message,
+            patient: patientName,
+            patientId: alert.patient_id,
+            time: new Date(alert.triggered_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            read: alert.acknowledged || false,
+          } as Alert;
+        });
+        combinedAlerts = [...combinedAlerts, ...mappedBackendAlerts];
+      } catch (error) {
+        console.error("Failed to fetch backend alerts", error);
+      }
 
-        // Alerte info pour les nouveaux patients (créés il y a moins de 24h)
-        const createdAt = patient.createdAt ? new Date(patient.createdAt) : new Date();
-        const isNewPatient = (Date.now() - createdAt.getTime()) < 24 * 60 * 60 * 1000;
-        if (isNewPatient) {
-          generatedAlerts.push({
-            id: patient.id * 10 + 4,
-            type: "info",
-            title: t("new_patient", undefined, "Nouveau Patient Ajouté"),
-            description: t("new_patient_desc", { name: patient.name }, `Le patient ${patient.name} a été ajouté à votre liste.`),
-            patient: patient.name,
-            patientId: patient.id,
-            time: t("today"),
-            read: true,
-          });
-        }
+      // Trier par date (approximatif, mixant strings et dates réelles) - Pour l'instant on met les nouvelles (backend) en premier si possible
+      // Ou on ne trie pas trop fort. Le backend renvoie déjà trié.
+      // On va juste garder l'ordre : backend (souvent plus récent) + generated.
 
-        // Alerte success pour les patients stables
-        if (patient.healthStatus?.toLowerCase() === "stable" && patient.riskScore < 30) {
-          generatedAlerts.push({
-            id: patient.id * 10 + 5,
-            type: "success",
-            title: t("patient_stable", undefined, "Patient Stable"),
-            description: t("patient_stable_desc", { name: patient.name }, `L'état de ${patient.name} est stable et sous contrôle.`),
-            patient: patient.name,
-            patientId: patient.id,
-            time: t("this_week"),
-            read: true,
-          });
-        }
-      });
+      setAlertsData(combinedAlerts);
+    };
 
-      // Ajouter quelques alertes fixes basées sur l'activité récente
-      const recentPatients = doctorPatients
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-        .slice(0, 3);
-
-      recentPatients.forEach((patient, index) => {
-        if (index === 0) {
-          generatedAlerts.unshift({
-            id: patient.id * 10 + 6,
-            type: "info",
-            title: t("medication_reminder", undefined, "Rappel de Consultation"),
-            description: t("medication_reminder_desc", { name: patient.name }, `Consultation de suivi prévue pour ${patient.name} cette semaine.`),
-            patient: patient.name,
-            patientId: patient.id,
-            time: t("tomorrow"),
-            read: false,
-          });
-        }
-      });
-
-      setAlertsData(generatedAlerts);
+    if (doctorPatients.length > 0 || true) { // Toujours essayer de fetcher même si pas de patients chargés localement
+      fetchAndGenerateAlerts();
     }
-  }, [doctorPatients]);
+  }, [doctorPatients, t]); // Re-run si patients ou langue change
 
   const getAlertIcon = (type: Alert["type"]) => {
     switch (type) {
@@ -153,6 +125,8 @@ const Alerts = () => {
         return <Info className="h-5 w-5" />;
       case "success":
         return <CheckCircle className="h-5 w-5" />;
+      case "medication_intake":
+        return <Pill className="h-5 w-5" />;
     }
   };
 
@@ -166,6 +140,8 @@ const Alerts = () => {
         return "text-info";
       case "success":
         return "text-success";
+      case "medication_intake":
+        return "text-primary";
     }
   };
 
@@ -179,6 +155,8 @@ const Alerts = () => {
         return "default";
       case "success":
         return "default";
+      case "medication_intake":
+        return "outline";
     }
   };
 
@@ -198,15 +176,15 @@ const Alerts = () => {
   };
 
   const markAsRead = (alertId: number) => {
-    setAlertsData(prev => 
-      prev.map(alert => 
+    setAlertsData(prev =>
+      prev.map(alert =>
         alert.id === alertId ? { ...alert, read: true } : alert
       )
     );
   };
 
   const markAllAsRead = () => {
-    setAlertsData(prev => 
+    setAlertsData(prev =>
       prev.map(alert => ({ ...alert, read: true }))
     );
   };
@@ -234,8 +212,8 @@ const Alerts = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card 
-            className={`p-4 cursor-pointer hover:border-primary transition-colors ${filter === "all" ? "border-primary" : ""}`} 
+          <Card
+            className={`p-4 cursor-pointer hover:border-primary transition-colors ${filter === "all" ? "border-primary" : ""}`}
             onClick={() => setFilter("all")}
           >
             <div className="flex items-center justify-between">
@@ -247,8 +225,8 @@ const Alerts = () => {
             </div>
           </Card>
 
-          <Card 
-            className={`p-4 cursor-pointer hover:border-destructive transition-colors ${filter === "critical" ? "border-destructive" : ""}`} 
+          <Card
+            className={`p-4 cursor-pointer hover:border-destructive transition-colors ${filter === "critical" ? "border-destructive" : ""}`}
             onClick={() => setFilter("critical")}
           >
             <div className="flex items-center justify-between">
@@ -262,8 +240,8 @@ const Alerts = () => {
             </div>
           </Card>
 
-          <Card 
-            className={`p-4 cursor-pointer hover:border-warning transition-colors ${filter === "warning" ? "border-warning" : ""}`} 
+          <Card
+            className={`p-4 cursor-pointer hover:border-warning transition-colors ${filter === "warning" ? "border-warning" : ""}`}
             onClick={() => setFilter("warning")}
           >
             <div className="flex items-center justify-between">
@@ -277,8 +255,8 @@ const Alerts = () => {
             </div>
           </Card>
 
-          <Card 
-            className={`p-4 cursor-pointer hover:border-info transition-colors ${filter === "info" ? "border-info" : ""}`} 
+          <Card
+            className={`p-4 cursor-pointer hover:border-info transition-colors ${filter === "info" ? "border-info" : ""}`}
             onClick={() => setFilter("info")}
           >
             <div className="flex items-center justify-between">
@@ -317,9 +295,8 @@ const Alerts = () => {
           {filteredAlerts.map((alert) => (
             <Card
               key={alert.id}
-              className={`p-5 transition-all hover:shadow-md cursor-pointer ${
-                !alert.read ? "border-l-4 border-l-primary bg-secondary/20" : ""
-              }`}
+              className={`p-5 transition-all hover:shadow-md cursor-pointer ${!alert.read ? "border-l-4 border-l-primary bg-secondary/20" : ""
+                }`}
               onClick={() => markAsRead(alert.id)}
             >
               <div className="flex items-start gap-4">
@@ -343,15 +320,15 @@ const Alerts = () => {
                         </Badge>
                       )}
                       <Badge variant={getBadgeVariant(alert.type)}>
-                        {alert.type === "critical" ? t("alert_critical") : 
-                         alert.type === "warning" ? t("alert_warning") : 
-                         alert.type === "info" ? t("alert_info") : t("alert_success")}
+                        {alert.type === "critical" ? t("alert_critical") :
+                          alert.type === "warning" ? t("alert_warning") :
+                            alert.type === "info" ? t("alert_info") : t("alert_success")}
                       </Badge>
                     </div>
                   </div>
                   <div className="flex items-center justify-between mt-3">
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <Link 
+                      <Link
                         to={`/patients/${alert.patientId}`}
                         className="hover:text-primary transition-colors hover:underline"
                         onClick={(e) => e.stopPropagation()}
@@ -361,9 +338,9 @@ const Alerts = () => {
                       <span>•</span>
                       <span>{alert.time}</span>
                     </div>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       asChild
                       onClick={(e) => e.stopPropagation()}
                     >
@@ -385,7 +362,7 @@ const Alerts = () => {
               {t("no_alerts_found")}
             </h3>
             <p className="text-muted-foreground">
-              {alertsData.length === 0 
+              {alertsData.length === 0
                 ? t("no_alerts_generated")
                 : t("adjust_search_filter")
               }

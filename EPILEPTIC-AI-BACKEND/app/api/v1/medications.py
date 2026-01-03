@@ -202,4 +202,21 @@ async def take_medication(
     db.commit()
     db.refresh(medication_log)
 
+    # Create Alert for Doctor
+    from app.models.alert import Alert
+    
+    # Create notification alert
+    alert = Alert(
+        patient_id=current_patient.id,
+        alert_type="medication_intake",
+        severity="info",
+        title="Medication Taken",
+        message=f"Patient {current_patient.full_name} has taken {medication.name} ({medication.dosage})",
+        is_active=True,
+        requires_user_confirmation=False,
+        triggered_at=taken_at
+    )
+    
+    db.add(alert)
+
     return medication_log

@@ -29,7 +29,7 @@ const Dashboard = () => {
   // Filtrer les patients pour n'afficher que ceux du docteur connecté
   useEffect(() => {
     if (user && patients) {
-      const filtered = patients.filter(patient => 
+      const filtered = patients.filter(patient =>
         patient.owner === user.email
       );
       setDoctorPatients(filtered);
@@ -47,23 +47,23 @@ const Dashboard = () => {
 
   // Calculer les statistiques basées sur les patients réels
   const calculateStats = () => {
-    const criticalPatients = doctorPatients.filter(p => 
+    const criticalPatients = doctorPatients.filter(p =>
       p.healthStatus?.toLowerCase() === "critical"
     ).length;
-    
-    const highRiskPatients = doctorPatients.filter(p => 
+
+    const highRiskPatients = doctorPatients.filter(p =>
       p.healthStatus?.toLowerCase() === "high"
     ).length;
-    
-    const mediumRiskPatients = doctorPatients.filter(p => 
+
+    const mediumRiskPatients = doctorPatients.filter(p =>
       p.healthStatus?.toLowerCase() === "medium"
     ).length;
-    
-    const stablePatients = doctorPatients.filter(p => 
+
+    const stablePatients = doctorPatients.filter(p =>
       p.healthStatus?.toLowerCase() === "stable"
     ).length;
-    
-    const lowRiskPatients = doctorPatients.filter(p => 
+
+    const lowRiskPatients = doctorPatients.filter(p =>
       p.healthStatus?.toLowerCase() === "low"
     ).length;
 
@@ -87,7 +87,7 @@ const Dashboard = () => {
       return created >= twoWeeksAgo && created < oneWeekAgo;
     }).length;
 
-    const weeklyGrowth = lastWeekPatients > 0 
+    const weeklyGrowth = lastWeekPatients > 0
       ? ((thisWeekPatients - lastWeekPatients) / lastWeekPatients * 100).toFixed(1)
       : thisWeekPatients > 0 ? "+100" : "0";
 
@@ -133,11 +133,11 @@ const Dashboard = () => {
   // Données pour la distribution des risques
   const getRiskDistributionData = () => {
     return [
-      { name: "Critique", value: stats.criticalPatients, color: "hsl(var(--destructive))" },
-      { name: "Élevé", value: stats.highRiskPatients, color: "hsl(var(--warning))" },
-      { name: "Moyen", value: stats.mediumRiskPatients, color: "hsl(var(--secondary))" },
-      { name: "Stable", value: stats.stablePatients, color: "hsl(var(--primary))" },
-      { name: "Faible", value: stats.lowRiskPatients, color: "hsl(var(--accent))" },
+      { name: t("risk_critical", undefined, "Critique"), value: stats.criticalPatients, color: "hsl(var(--destructive))" },
+      { name: t("risk_high", undefined, "Élevé"), value: stats.highRiskPatients, color: "hsl(var(--warning))" },
+      { name: t("risk_medium", undefined, "Moyen"), value: stats.mediumRiskPatients, color: "hsl(var(--secondary))" },
+      { name: t("risk_stable", undefined, "Stable"), value: stats.stablePatients, color: "hsl(var(--primary))" },
+      { name: t("risk_low", undefined, "Faible"), value: stats.lowRiskPatients, color: "hsl(var(--accent))" },
     ];
   };
 
@@ -150,7 +150,7 @@ const Dashboard = () => {
         id: patient.id,
         name: patient.name,
         status: patient.healthStatus?.toLowerCase(),
-        time: patient.lastVisit || "Récemment",
+        time: patient.lastVisit || t("recently", undefined, "Récemment"),
         riskScore: patient.riskScore,
       }));
   };
@@ -172,16 +172,16 @@ const Dashboard = () => {
               {t("dashboard_subtitle") || `Vue d'ensemble de vos ${stats.totalPatients} patients`}
             </p>
           </div>
-          <button 
-  className="p-2 hover:bg-muted rounded-lg transition-colors"
-  onClick={() => navigate('/alerts')} // Ajouter cette ligne
->
-  <Bell className="h-6 w-6 text-muted-foreground" />
-</button>
+          <button
+            className="p-2 hover:bg-muted rounded-lg transition-colors"
+            onClick={() => navigate('/alerts')} // Ajouter cette ligne
+          >
+            <Bell className="h-6 w-6 text-muted-foreground" />
+          </button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card 
+          <Card
             className="p-6 cursor-pointer hover:shadow-lg transition-shadow"
             onClick={() => navigate('/patients')}
           >
@@ -201,7 +201,7 @@ const Dashboard = () => {
             </div>
           </Card>
 
-          <Card 
+          <Card
             className="p-6 cursor-pointer hover:shadow-lg transition-shadow"
             onClick={() => navigate('/patients')}
           >
@@ -220,7 +220,7 @@ const Dashboard = () => {
             </div>
           </Card>
 
-          <Card 
+          <Card
             className="p-6 cursor-pointer hover:shadow-lg transition-shadow"
             onClick={() => navigate('/patients')}
           >
@@ -240,7 +240,7 @@ const Dashboard = () => {
             </div>
           </Card>
 
-          <Card 
+          <Card
             className="p-6 cursor-pointer hover:shadow-lg transition-shadow"
             onClick={() => navigate('/patients')}
           >
@@ -250,7 +250,7 @@ const Dashboard = () => {
                 <p className="text-3xl font-bold text-foreground mt-1">{stats.thisWeekPatients}</p>
               </div>
               <Badge className="bg-primary text-primary-foreground">
-                Nouveaux
+                {t("new_patient", undefined, "Nouveaux")}
               </Badge>
             </div>
             <div className="flex items-center justify-between mt-4">
@@ -264,7 +264,7 @@ const Dashboard = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Activité des 7 derniers jours</h3>
+            <h3 className="text-lg font-semibold mb-4">{t("seizure_activity_title")}</h3>
             <ResponsiveContainer width="100%" height={250}>
               <LineChart data={activityData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
@@ -293,7 +293,7 @@ const Dashboard = () => {
           </Card>
 
           <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Activité des 30 derniers jours</h3>
+            <h3 className="text-lg font-semibold mb-4">{t("patient_activity_overview")}</h3>
             <ResponsiveContainer width="100%" height={250}>
               <LineChart data={patientOverviewData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
@@ -352,16 +352,16 @@ const Dashboard = () => {
                           patient.status === "critical"
                             ? "destructive"
                             : patient.status === "high"
-                            ? "destructive"
-                            : patient.status === "medium"
-                            ? "secondary"
-                            : "default"
+                              ? "destructive"
+                              : patient.status === "medium"
+                                ? "secondary"
+                                : "default"
                         }
                       >
-                        {patient.status === "critical" ? "Critique" : 
-                         patient.status === "high" ? "Élevé" : 
-                         patient.status === "medium" ? "Moyen" : 
-                         patient.status === "stable" ? "Stable" : "Faible"}
+                        {patient.status === "critical" ? t("risk_critical") :
+                          patient.status === "high" ? t("risk_high") :
+                            patient.status === "medium" ? t("risk_medium") :
+                              patient.status === "stable" ? t("risk_stable") : t("risk_low")}
                       </Badge>
                       <Eye className="h-4 w-4 text-muted-foreground" />
                     </div>
@@ -369,14 +369,14 @@ const Dashboard = () => {
                 ))
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
-                  Aucun patient trouvé
+                  {t("patient_not_found", undefined, "Aucun patient trouvé")}
                 </div>
               )}
             </div>
           </Card>
 
           <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Distribution des risques</h3>
+            <h3 className="text-lg font-semibold mb-4">{t("risk_distribution")}</h3>
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={riskDistributionData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
@@ -393,10 +393,10 @@ const Dashboard = () => {
                     borderRadius: "8px",
                   }}
                 />
-                <Bar 
-                  dataKey="value" 
-                  fill="hsl(var(--accent))" 
-                  radius={[8, 8, 0, 0]} 
+                <Bar
+                  dataKey="value"
+                  fill="hsl(var(--accent))"
+                  radius={[8, 8, 0, 0]}
                 />
               </BarChart>
             </ResponsiveContainer>

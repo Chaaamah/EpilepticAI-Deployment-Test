@@ -15,6 +15,18 @@ export const alertService = {
     return response.data;
   },
 
+  // Get managed alerts (Doctor)
+  getManagedAlerts: async (
+    params?: {
+      active_only?: boolean;
+      days?: number;
+      limit?: number;
+    }
+  ): Promise<Alert[]> => {
+    const response = await api.get('/alerts/managed', { params });
+    return response.data;
+  },
+
   // Get unread alerts
   getUnreadAlerts: async (): Promise<Alert[]> => {
     const response = await api.get('/alerts/unread');
