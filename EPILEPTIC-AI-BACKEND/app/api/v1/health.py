@@ -136,3 +136,81 @@ async def get_insights(
         "data": insights[:limit],
         "error": None
     }
+
+@router.get("/profile-stats")
+async def get_profile_stats(
+    current_patient = Depends(get_current_patient_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get profile statistics for the patient dashboard:
+    - Current risk score (from latest prediction)
+    - Medication adherence percentage
+    - Safe days count (days without seizure)
+    - Emergency contacts count
+    """
+    patient_id = get_patient_id(current_patient, db)
+
+    # Get patient record for emergency contacts
+    patient = db.query(Patient).filter(Patient.id == patient_id).first()
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient not found")
+
+    # 1. Get latest risk score from predictions
+    latest_prediction = db.query(Prediction).filter(
+        Prediction.patient_id == patient_id
+    ).order_by(desc(Prediction.predicted_at)).first()
+
+    risk_score = round(latest_prediction.risk_score) if latest_prediction else 0
+
+    # 2. Calculate medication adherence (last 30 days)
+    thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+
+    # Get all medications for the patient
+    medications = db.query(Medication).filter(
+        Medication.patient_id == patient_id,
+        Medication.status == "active"
+    ).all()
+
+    if medications:
+        # Count expected doses (assuming each medication is taken once per day)
+        expected_doses = len(medications) * 30
+
+        # Count actual doses taken
+        taken_doses = db.query(MedicationLog).filter(
+            MedicationLog.patient_id == patient_id,
+            MedicationLog.taken_at >= thirty_days_ago,
+            MedicationLog.status == "taken"
+        ).count()
+
+        adherence = round((taken_doses / expected_doses * 100)) if expected_doses > 0 else 0
+    else:
+        adherence = 0
+
+    # 3. Calculate safe days (days without seizure in last 30 days)
+    recent_seizures = db.query(Seizure).filter(
+        Seizure.patient_id == patient_id,
+        Seizure.start_time >= thirty_days_ago
+    ).all()
+
+    # Get unique days with seizures
+    seizure_days = set()
+    for seizure in recent_seizures:
+        seizure_days.add(seizure.start_time.date())
+
+    safe_days = 30 - len(seizure_days)
+
+    # 4. Count emergency contacts
+    emergency_contacts_count = len(patient.emergency_contacts) if patient.emergency_contacts else 0
+
+    return {
+        "success": True,
+        "message": "Profile stats retrieved successfully",
+        "data": {
+            "risk_score": risk_score,
+            "adherence": adherence,
+            "safe_days": safe_days,
+            "emergency_contacts_count": emergency_contacts_count
+        },
+        "error": None
+    }
