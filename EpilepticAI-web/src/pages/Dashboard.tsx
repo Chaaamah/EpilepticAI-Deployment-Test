@@ -18,6 +18,7 @@ import {
 } from "recharts";
 import { usePatients } from "@/contexts/PatientsContext";
 import { useEffect, useState } from "react";
+import { alertService } from "@/services/alertService";
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -25,6 +26,7 @@ const Dashboard = () => {
   const { patients } = usePatients();
   const navigate = useNavigate();
   const [doctorPatients, setDoctorPatients] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   // Filtrer les patients pour n'afficher que ceux du docteur connecté
   useEffect(() => {
@@ -35,6 +37,28 @@ const Dashboard = () => {
       setDoctorPatients(filtered);
     }
   }, [patients, user]);
+
+  // Fetch unread alerts count
+  useEffect(() => {
+    const fetchUnreadCount = async () => {
+      try {
+        // Fetch managed alerts and count unacknowledged ones
+        // Note: Backend doesn't have a specific "unread count" endpoint for managed alerts yet, 
+        // but we can fetch recent alerts and filter or check "acknowledged" field.
+        // Or if we assume "unread" means "not acknowledged".
+        // Let's use getManagedAlerts and count locally for now.
+        const alerts = await alertService.getManagedAlerts({ active_only: true, limit: 100 });
+        const unread = alerts.filter((a: any) => !a.acknowledged).length;
+        setUnreadCount(unread);
+      } catch (error) {
+        console.error("Failed to fetch unread alerts count", error);
+      }
+    };
+
+    fetchUnreadCount();
+    const interval = setInterval(fetchUnreadCount, 30000); // Poll every 30s
+    return () => clearInterval(interval);
+  }, []);
 
   const interp = (s: string, vars?: Record<string, string>) => {
     if (!vars) return s;
@@ -99,7 +123,7 @@ const Dashboard = () => {
       stablePatients,
       lowRiskPatients,
       thisWeekPatients,
-      weeklyGrowth: weeklyGrowth.startsWith('-') ? weeklyGrowth : `+${weeklyGrowth}`,
+      weeklyGrowth: weeklyGrowth.startsWith('-') ? weeklyGrowth : weeklyGrowth === "0" ? "0" : `+${weeklyGrowth}`,
       pendingCases: mediumRiskPatients + highRiskPatients, // Cas nécessitant une attention
     };
   };
@@ -173,10 +197,13 @@ const Dashboard = () => {
             </p>
           </div>
           <button
-            className="p-2 hover:bg-muted rounded-lg transition-colors"
+            className="p-2 hover:bg-muted rounded-lg transition-colors relative"
             onClick={() => navigate('/alerts')} // Ajouter cette ligne
           >
             <Bell className="h-6 w-6 text-muted-foreground" />
+            {unreadCount > 0 && (
+              <span className="absolute top-1.5 right-1.5 h-2.5 w-2.5 rounded-full bg-red-600 border border-background"></span>
+            )}
           </button>
         </div>
 
@@ -195,7 +222,7 @@ const Dashboard = () => {
             <div className="flex items-center justify-between mt-4">
               <div className="flex items-center text-success text-sm">
                 <TrendingUp className="h-4 w-4 mr-1" />
-                <span>{stats.weeklyGrowth}% cette semaine</span>
+                <span>{stats.weeklyGrowth}% {t("this_week")}</span>
               </div>
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
             </div>
