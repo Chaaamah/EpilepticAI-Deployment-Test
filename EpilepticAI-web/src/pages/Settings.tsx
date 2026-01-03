@@ -75,9 +75,9 @@ const Settings = () => {
                   {t("critical_alerts_notifications_desc", undefined, "Recevoir des notifications pour les alertes de patients à haut risque")}
                 </p>
               </div>
-              <Switch 
-                checked={criticalAlerts} 
-                onCheckedChange={(v) => updateSettings({ notifications: { ...notifications, criticalAlerts: !!v } })} 
+              <Switch
+                checked={criticalAlerts}
+                onCheckedChange={(v) => updateSettings({ notifications: { ...notifications, criticalAlerts: !!v } })}
               />
             </div>
             <div className="flex items-center justify-between">
@@ -87,9 +87,9 @@ const Settings = () => {
                   {t("medication_reminders_desc", undefined, "Recevoir des rappels pour les horaires de médicaments des patients")}
                 </p>
               </div>
-              <Switch 
-                checked={medicationReminders} 
-                onCheckedChange={(v) => updateSettings({ notifications: { ...notifications, medicationReminders: !!v } })} 
+              <Switch
+                checked={medicationReminders}
+                onCheckedChange={(v) => updateSettings({ notifications: { ...notifications, medicationReminders: !!v } })}
               />
             </div>
             <div className="flex items-center justify-between">
@@ -99,9 +99,9 @@ const Settings = () => {
                   {t("appointment_notifications_desc", undefined, "Alertes pour les rendez-vous à venir et manqués")}
                 </p>
               </div>
-              <Switch 
-                checked={appointmentNotifications} 
-                onCheckedChange={(v) => updateSettings({ notifications: { ...notifications, appointmentNotifications: !!v } })} 
+              <Switch
+                checked={appointmentNotifications}
+                onCheckedChange={(v) => updateSettings({ notifications: { ...notifications, appointmentNotifications: !!v } })}
               />
             </div>
           </div>
@@ -124,6 +124,23 @@ const Settings = () => {
               </Select>
             </div>
 
+            <div className="space-y-2">
+              <Label>{t("language_label", undefined, "Langue")}</Label>
+              <Select
+                value={settings.appearance.language}
+                onValueChange={(val) => updateSettings({ appearance: { ...appearance, language: val as any } })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="fr">{t("lang_fr")}</SelectItem>
+                  <SelectItem value="en">{t("lang_en")}</SelectItem>
+                  <SelectItem value="ar">{t("lang_ar")}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
           </div>
         </Card>
 
@@ -132,8 +149,8 @@ const Settings = () => {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>{t("high_risk_threshold", undefined, "Seuil de risque élevé")}</Label>
-              <Input 
-                type="number" 
+              <Input
+                type="number"
                 value={highRiskThreshold}
                 onChange={(e) => updateSettings({ riskScore: { ...riskScore, highRiskThreshold: e.target.value } })}
               />
@@ -163,13 +180,13 @@ const Settings = () => {
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <Label>{t("share_analytics", undefined, "Partager les données analytiques")}</Label>
-                  <p className="text-sm text-muted-foreground">
-                    {t("share_analytics_desc", undefined, "Aidez à améliorer nos modèles IA en partageant des données anonymisées")}
-                  </p>
+                <p className="text-sm text-muted-foreground">
+                  {t("share_analytics_desc", undefined, "Aidez à améliorer nos modèles IA en partageant des données anonymisées")}
+                </p>
               </div>
-              <Switch 
-                checked={shareAnalytics} 
-                onCheckedChange={(v) => updateSettings({ privacy: { ...privacy, shareAnalytics: !!v } })} 
+              <Switch
+                checked={shareAnalytics}
+                onCheckedChange={(v) => updateSettings({ privacy: { ...privacy, shareAnalytics: !!v } })}
               />
             </div>
             <div className="flex items-center justify-between">
@@ -179,9 +196,9 @@ const Settings = () => {
                   {t("two_factor_auth_desc", undefined, "Ajouter une couche de sécurité supplémentaire à votre compte")}
                 </p>
               </div>
-              <Switch 
-                checked={twoFactorAuth} 
-                onCheckedChange={(v) => updateSettings({ privacy: { ...privacy, twoFactorAuth: !!v } })} 
+              <Switch
+                checked={twoFactorAuth}
+                onCheckedChange={(v) => updateSettings({ privacy: { ...privacy, twoFactorAuth: !!v } })}
               />
             </div>
           </div>
