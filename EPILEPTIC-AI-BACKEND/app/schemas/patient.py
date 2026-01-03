@@ -8,7 +8,7 @@ class EmergencyContact(BaseModel):
     relationship: str
     phone: str = Field(..., min_length=10, max_length=15)
     email: Optional[EmailStr] = None
-    priority: int = Field(default=1, ge=1, le=5)
+    priority: int = Field(default=1, ge=1, le=20)
     notification_method: str = Field(default="sms")
 
 class MedicationSchema(BaseModel):
