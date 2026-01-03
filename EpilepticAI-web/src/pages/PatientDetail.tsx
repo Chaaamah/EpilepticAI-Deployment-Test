@@ -48,6 +48,7 @@ import { useTranslation } from "@/contexts/I18nContext";
 import { patientService } from "@/services/patientService";
 import { medicationService } from "@/services/medicationService";
 import type { Medication as APIMedication } from "@/services/medicationService";
+import VitalSignsCard from "@/components/VitalSignsCard";
 
 // Types pour les traitements et notes
 interface Medication {
@@ -595,14 +596,6 @@ const PatientDetail = () => {
     }
   };
 
-  const vitalSigns = {
-    bloodPressure: `${110 + Math.floor(patient.riskScore / 5)}/${70 + Math.floor(patient.riskScore / 10)}`,
-    spo2: Math.max(94, 100 - Math.floor(patient.riskScore / 20)),
-    temperature: (36.5 + (patient.riskScore / 100)).toFixed(1),
-    respiratoryRate: 16 + Math.floor(patient.riskScore / 20),
-    weight: 50 + patient.age,
-  };
-
   const emptySeizureData = Array(7).fill(0).map((_, i) => ({
     day: ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"][i],
     seizures: 0
@@ -730,57 +723,7 @@ const PatientDetail = () => {
               </Card>
 
               {/* Vital Signs Card */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <span className="text-primary">⊞</span> Signes vitaux
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="grid grid-cols-3 gap-4">
-                  <div className="flex items-center gap-2">
-                    <Activity className="h-4 w-4 text-blue-500" />
-                    <div>
-                      <p className="text-xs text-muted-foreground">Pression</p>
-                      <p className="text-sm font-medium text-green-600">● {vitalSigns.bloodPressure} mmHg</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Heart className="h-4 w-4 text-red-500" />
-                    <div>
-                      <p className="text-xs text-muted-foreground">Rythme card.</p>
-                      <p className="text-sm font-medium text-red-600">● {patient.heartRate} Bpm</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Droplets className="h-4 w-4 text-blue-500" />
-                    <div>
-                      <p className="text-xs text-muted-foreground">SPO2</p>
-                      <p className="text-sm font-medium text-blue-600">● {vitalSigns.spo2}%</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Thermometer className="h-4 w-4 text-orange-500" />
-                    <div>
-                      <p className="text-xs text-muted-foreground">Température</p>
-                      <p className="text-sm font-medium text-green-600">● {vitalSigns.temperature}°C</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Wind className="h-4 w-4 text-cyan-500" />
-                    <div>
-                      <p className="text-xs text-muted-foreground">Resp. rate</p>
-                      <p className="text-sm font-medium text-red-600">● {vitalSigns.respiratoryRate} rpm</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Scale className="h-4 w-4 text-purple-500" />
-                    <div>
-                      <p className="text-xs text-muted-foreground">Poids</p>
-                      <p className="text-sm font-medium text-blue-600">● {vitalSigns.weight} kg</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              <VitalSignsCard patientId={patient.id} />
             </div>
 
             {/* Overview Cards Grid */}
