@@ -164,8 +164,8 @@ class EmergencyService:
             patient_id=patient_id,
             alert_type=alert_type,
             severity="high",
-            title="Urgence Déclenchée",
-            message=f"Alerte d'urgence déclenchée ({alert_type})",
+            title="Emergency Triggered",
+            message=f"Emergency alert triggered ({alert_type})",
             is_active=True,
             risk_score=1.0,
             confidence=1.0,
@@ -203,7 +203,7 @@ class EmergencyService:
         if not contacts:
             return {"success": False, "message": "No contacts to notify"}
 
-        message = f"✅ EpilepticAI: {patient.full_name} a confirmé qu'il va bien. L'alerte est levée."
+        message = f"✅ EpilepticAI: {patient.full_name} confirms they are safe. Alert cancelled."
 
         total_sent = 0
         for contact in contacts:
@@ -390,7 +390,7 @@ class EmergencyService:
         risk_score: float,
         alert_type: str
     ) -> str:
-        """Génère le message d'urgence personnalisé (sans pourcentage)"""
+        \"\"\"Generates English emergency message\"\"\"
 
         alert_messages = {
             "SEIZURE_PREDICTION": "SEIZURE RISK DETECTED",
@@ -399,20 +399,20 @@ class EmergencyService:
             "EMERGENCY": "Medical Emergency"
         }
 
-        alert_description = alert_messages.get(alert_type, "Alerte médicale")
+        alert_description = alert_messages.get(alert_type, "Medical Alert")
 
-        message = f"""🚨 URGENCE EPILEPSIE
+        message = f\"\"\"🚨 EPILEPSY EMERGENCY
 
 Patient: {patient.full_name}
-Alerte: {alert_description}
-Heure: {datetime.utcnow().strftime("%d/%m/%Y %H:%M")}
+Alert: {alert_description}
+Time: {datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")}
 
-ACTION IMMÉDIATE:
-- Contacter le patient au {patient.phone or "numéro inconnu"}
-- Se rendre à son domicile si pas de réponse
-- Appeler le 15 (SAMU) si nécessaire
+IMMEDIATE ACTION REQUIRED:
+- Contact the patient at {patient.phone or "unknown number"}
+- Go to their location if no response
+- Call Emergency Services (911/112) if necessary
 
-EpilepticAI"""
+EpilepticAI\"\"\"
 
         return message
 
@@ -463,22 +463,22 @@ EpilepticAI"""
                 digits = '0' + digits[2:]  # +33612... → 0612...
             phone_spoken = ' '.join(digits)
 
-        twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
+        twiml = f\"\"\"<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say language="fr-FR" voice="alice">
-        Urgence épilepsie. EpilepticAI.
-        Alerte pour le patient {patient_name}.
-        Risque de crise détecté.
-        {'Veuillez contacter immédiatement le patient au ' + phone_spoken + '.' if phone_spoken else 'Veuillez contacter le patient immédiatement.'}
-        Appuyez sur 1 pour confirmer la réception de cette alerte.
+    <Say language="en-US" voice="alice">
+        Epilepsy Emergency. EpilepticAI.
+        Alert for patient {patient_name}.
+        Seizure risk detected.
+        {'Please contact the patient immediately at ' + phone_spoken + '.' if phone_spoken else 'Please contact the patient immediately.'}
+        Press 1 to confirm receipt of this alert.
     </Say>
     <Gather numDigits="1" action="/api/v1/emergency/confirm" method="POST" timeout="10">
-        <Say language="fr-FR">Appuyez sur 1 maintenant.</Say>
+        <Say language="en-US">Press 1 now.</Say>
     </Gather>
-    <Say language="fr-FR">
-        Aucune confirmation reçue. Un autre contact sera appelé.
+    <Say language="en-US">
+        No confirmation received. Calling next contact.
     </Say>
-</Response>"""
+</Response>\"\"\"
 
         return twiml
 
