@@ -105,13 +105,22 @@ async def get_patients_list(
     - Admin users: see all patients
     - Doctor users: see only patients assigned to them (filtered by treating_neurologist)
     """
+    print(f"🔍 Get patients - User type: {type(current_user)}")
+    print(f"🔍 Has role attr: {hasattr(current_user, 'role')}")
+    if hasattr(current_user, 'role'):
+        print(f"🔍 User role: {current_user.role}")
+    print(f"🔍 Is admin check: {hasattr(current_user, 'role') and current_user.role == UserRole.ADMIN}")
+
     # Check if user is admin
     if hasattr(current_user, 'role') and current_user.role == UserRole.ADMIN:
         # Admin sees all patients
+        print("✅ Admin detected - returning all patients")
         patients = db.query(Patient).offset(skip).limit(limit).all()
+        print(f"📊 Total patients found: {len(patients)}")
         return patients
 
     # For doctors: filter by treating_neurologist
+    print("👨‍⚕️ Doctor detected - filtering by assigned patients")
     doctor_email = None
     if isinstance(current_user, Doctor):
         doctor_email = current_user.email
@@ -129,6 +138,7 @@ async def get_patients_list(
         Patient.treating_neurologist == doctor_email
     ).offset(skip).limit(limit).all()
 
+    print(f"📊 Patients assigned to {doctor_email}: {len(patients)}")
     return patients
 
 @router.get("/patients/{patient_id}", response_model=PatientInDB, summary="Get patient by ID (admin sees all, doctor sees only assigned)")
