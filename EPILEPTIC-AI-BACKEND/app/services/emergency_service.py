@@ -393,10 +393,10 @@ class EmergencyService:
         """Génère le message d'urgence personnalisé (sans pourcentage)"""
 
         alert_messages = {
-            "SEIZURE_PREDICTION": "RISQUE DE CRISE DÉTECTÉ",
-            "FALL_DETECTED": "Chute détectée",
-            "NO_RESPONSE": "Patient ne répond pas",
-            "EMERGENCY": "Urgence médicale"
+            "SEIZURE_PREDICTION": "SEIZURE RISK DETECTED",
+            "FALL_DETECTED": "Fall detected",
+            "NO_RESPONSE": "Patient not responding",
+            "EMERGENCY": "Medical Emergency"
         }
 
         alert_description = alert_messages.get(alert_type, "Alerte médicale")
