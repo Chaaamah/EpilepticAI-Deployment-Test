@@ -8,11 +8,14 @@ from app.models.doctor import Doctor
 from app.models.patient import Patient
 from app.models.user import User, UserRole
 from app.models.medication import Medication
+from app.models.biometric import Biometric
 from app.schemas.doctor import DoctorCreate, DoctorInDB, DoctorUpdate
 from app.schemas.patient import PatientCreateByDoctor, PatientInDB, PatientUpdate
 from app.schemas.medication import MedicationCreate, MedicationUpdate, MedicationInDB
+from app.schemas.biometric import BiometricInDB
 from app.api.deps import get_current_doctor_user, get_current_admin_or_doctor, get_current_admin
 import json
+from datetime import datetime, timedelta
 
 router = APIRouter()
 
@@ -579,6 +582,85 @@ async def delete_patient_medication(
     db.commit()
 
     return {"message": f"Medication {medication.name} deleted successfully"}
+
+# ==================== BIOMETRICS MANAGEMENT BY DOCTORS ====================
+
+@router.get("/patients/{patient_id}/biometrics/latest", response_model=BiometricInDB, summary="Get latest biometric data for patient (Doctor only)")
+async def get_patient_latest_biometric(
+    patient_id: int,
+    db: Session = Depends(get_db),
+    current_doctor = Depends(get_current_doctor_user)
+):
+    """Get the latest biometric data for a specific patient. Only accessible by the patient's assigned doctor."""
+    # Get doctor's email
+    doctor_email = None
+    if isinstance(current_doctor, Doctor):
+        doctor_email = current_doctor.email
+    elif hasattr(current_doctor, 'email'):
+        doctor_email = current_doctor.email
+
+    # Verify patient exists and belongs to this doctor
+    patient = db.query(Patient).filter(
+        Patient.id == patient_id,
+        Patient.treating_neurologist == doctor_email
+    ).first()
+
+    if not patient:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Patient not found or not assigned to you"
+        )
+
+    # Get latest biometric data
+    biometric = db.query(Biometric).filter(
+        Biometric.patient_id == patient_id
+    ).order_by(Biometric.recorded_at.desc()).first()
+
+    if not biometric:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No biometric data found for this patient"
+        )
+
+    return biometric
+
+@router.get("/patients/{patient_id}/biometrics", response_model=List[BiometricInDB], summary="Get biometric history for patient (Doctor only)")
+async def get_patient_biometrics(
+    patient_id: int,
+    hours: int = 24,
+    db: Session = Depends(get_db),
+    current_doctor = Depends(get_current_doctor_user)
+):
+    """Get biometric history for a specific patient. Only accessible by the patient's assigned doctor."""
+    # Get doctor's email
+    doctor_email = None
+    if isinstance(current_doctor, Doctor):
+        doctor_email = current_doctor.email
+    elif hasattr(current_doctor, 'email'):
+        doctor_email = current_doctor.email
+
+    # Verify patient exists and belongs to this doctor
+    patient = db.query(Patient).filter(
+        Patient.id == patient_id,
+        Patient.treating_neurologist == doctor_email
+    ).first()
+
+    if not patient:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Patient not found or not assigned to you"
+        )
+
+    # Get biometric data for the specified time range
+    from datetime import timezone
+    start_time = datetime.now(timezone.utc) - timedelta(hours=hours)
+
+    biometrics = db.query(Biometric).filter(
+        Biometric.patient_id == patient_id,
+        Biometric.recorded_at >= start_time
+    ).order_by(Biometric.recorded_at.desc()).all()
+
+    return biometrics
 
 # ==================== PUBLIC ENDPOINTS ====================
 
